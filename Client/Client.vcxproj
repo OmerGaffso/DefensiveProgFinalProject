@@ -131,6 +131,7 @@
     <ClCompile Include="FileInput.cpp" />
     <ClCompile Include="GenDef.h" />
     <ClCompile Include="ConsoleInput.cpp" />
+    <ClCompile Include="Run.cpp" />
     <ClCompile Include="UI.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -138,6 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="InputHandler.h" />
+    <ClInclude Include="Run.h" />
     <ClInclude Include="UI.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

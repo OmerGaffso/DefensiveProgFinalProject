@@ -1,12 +1,12 @@
 // Client.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
-#include "UI.h"
+#include "Application.h"
 
 int main()
 {
-    UI ui;
-    ui.displayMenu();
+    Application app;
+    app.run();
     return 0;
 }
 

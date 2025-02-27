@@ -18,5 +18,6 @@ void UI::displayMenu() const
 
 string UI::getUserInput() const
 {
+
 	return "";
 }

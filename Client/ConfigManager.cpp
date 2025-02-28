@@ -28,21 +28,61 @@ bool ConfigManager::parseConfigFile(const std::string& filename)
         m_errMsg = "Invalid format in config file. Expected: 'ip_addr:port'";
         return false;
     }
+    //
+    std::string ip = line.substr(0, separator_pos);
+    std::string portStr = line.substr(separator_pos + 1);
+    //
+    // trim to handle cases like "ip : port"
+    ip = trim(ip);
+    portStr = trim(portStr);
+    //
+    // Validate IP address
+    if (!validateIPAdder(ip))
+    {
+        m_errMsg = "Invalid IP address: " + ip;
+        return false;
+    }
+    //
+    // Parse and validate port
+    try
+    {
+        int port = std::stoi(portStr);
+        if (!validatePort(port))
+        {
+            m_errMsg = "Invalid port number: " + portStr;
+            return false;
+        }
+        m_serverPort = port;
+    }
+    catch (const std::exception& e)
+    {
+        m_errMsg = "Invalid port number: " + portStr;
+        return false;
+    }
 
-
+    m_serverIP = ip;
     return true;
 }
 
 bool ConfigManager::validateIPAdder(const std::string& ip)
 {
-
-    return true;
+    std::regex ipv4_pattern(
+        "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\."
+        "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\."
+        "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\."
+        "(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
+    );
+    //
+    if (ip == "localhost")
+        return true;
+    
+    return std::regex_match(ip,  ipv4_pattern);
 }
 
 bool ConfigManager::validatePort(const int port)
 {
-
-    return true;
+    // Validate that the port is between 1024 and 65535
+    return (port >= MIN_PORT && port <= MAX_PORT);
 }
 
 ConfigManager::ConfigManager(const std::string& configFile = "server.info")

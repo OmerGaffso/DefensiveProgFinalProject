@@ -6,7 +6,7 @@
 #include <boost/asio.hpp>
 #include <vector>
 #include <cstdint>
-#include "Requests.h"
+#include "Message.h"
 
 class NetworkClient
 {

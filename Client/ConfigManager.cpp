@@ -5,20 +5,20 @@
 bool ConfigManager::parseConfigFile(const std::string& filename)
 {
     std::ifstream file(filename);
-
+    //
     if (!file.is_open())
     {
         m_errMsg = "Could not open config file: " + filename;
         return false;
     }
-
+    //
     std::string line;
     if (!std::getline(file, line))
     {
         m_errMsg = "Config file is empty";
         return false;
     }
-
+    //
     line = trim(line); // trim whitespaces.
     //
     // Expected format: ip_addr:port
@@ -43,6 +43,8 @@ bool ConfigManager::parseConfigFile(const std::string& filename)
         return false;
     }
     //
+    m_serverIP = ip; // IP addr OK
+    //
     // Parse and validate port
     try
     {
@@ -52,15 +54,14 @@ bool ConfigManager::parseConfigFile(const std::string& filename)
             m_errMsg = "Invalid port number: " + portStr;
             return false;
         }
-        m_serverPort = port;
+        m_serverPort = port; // port OK
     }
     catch (const std::exception& e)
     {
         m_errMsg = "Invalid port number: " + portStr;
         return false;
     }
-
-    m_serverIP = ip;
+    //
     return true;
 }
 

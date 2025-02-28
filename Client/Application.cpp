@@ -1,20 +1,19 @@
 #include "Application.h"
-#include "UI.h"
-#include "InputHandler.h"
 
 Application::Application()
 {
-    InputHandler con = new ConsoleInputHandler(); // 
+    inputHandler = new ConsoleInputHandler(); // 
 }
 
 Application::~Application()
 {
-
+    delete inputHandler;
 }
 
 void Application::run()
 {
-    UI ui;
     ui.displayMenu();
+    std::string userInput = inputHandler->getInput();
 
+    std::cout << "User Input was: " << userInput << "\n";
 }

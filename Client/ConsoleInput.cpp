@@ -1,14 +1,10 @@
-#include "InputHandler.h"
+#include "ConsoleInput.h"
 
-class ConsoleInputHandler :public InputHandler
+std::string ConsoleInputHandler::getInput()
 {
-public:
-    std::string getInput() override
-    {
-        std::string in;
-        std::getline(std::cin, in);
-        // Add checks for the input
+    std::string in;
+    std::getline(std::cin, in);
+    // Add checks for the input
 
-        return in;
-    }
-};
+    return in;
+}

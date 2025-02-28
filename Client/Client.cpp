@@ -6,7 +6,8 @@
 int main()
 {
     Application app;
-    app.run();
+    while (true)
+        app.run();
     return 0;
 }
 

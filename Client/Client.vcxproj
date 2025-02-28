@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -131,15 +131,17 @@
     <ClCompile Include="FileInput.cpp" />
     <ClCompile Include="GenDef.h" />
     <ClCompile Include="ConsoleInput.cpp" />
-    <ClCompile Include="Run.cpp" />
+    <ClCompile Include="Application.cpp" />
     <ClCompile Include="UI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ConsoleInput.h" />
+    <ClInclude Include="FileInput.h" />
     <ClInclude Include="InputHandler.h" />
-    <ClInclude Include="Run.h" />
+    <ClInclude Include="Application.h" />
     <ClInclude Include="UI.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

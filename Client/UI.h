@@ -6,5 +6,5 @@ class UI
 {
 public:
 	void        displayMenu() const;
-	std::string getUserInput() const;
+	std::string getUserInput() const; // Not sure if needed.
 };

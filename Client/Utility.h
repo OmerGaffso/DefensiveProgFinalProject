@@ -4,7 +4,7 @@
 #include <string>
 
 #define MIN_USERNAME_LEN  3U
-#define MAX_USERNAME_SIZE 255U;
+#define MAX_USERNAME_SIZE 255U
 
 
 bool isValidUsername(const std::string& username);

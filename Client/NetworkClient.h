@@ -21,9 +21,9 @@ constexpr uint8_t PAYLOAD_SIZE_FIELD = 4;
 constexpr uint8_t HEADER_SIZE  = CLIENT_ID_SIZE + VERSION_SIZE + CODE_SIZE + PAYLOAD_SIZE_FIELD;
 
 // Register field sizes
-#define PUBLIC_KEY_SIZE    160U;
+#define PUBLIC_KEY_SIZE    160U
 
-enum class Commands : uint8_t
+enum class Commands : uint16_t
 {
     CMD_REGISTER         = 600,
     CMD_CLIENT_LIST      = 601,
@@ -90,7 +90,7 @@ public:
     bool sendSymmetricKey(const std::vector<uint8_t>& targetId, const std::vector<uint8_t>& encryptedKey);
     bool sendFile(const std::vector<uint8_t>& targetId, const std::vector<uint8_t>& encryptedFile);
     bool getPendingMessages(std::vector<std::tuple<std::vector<uint8_t>, MessageType, std::vector<uint8_t>>>& messages);
-    bool sendMessage(const std::vector<uint8_t> targetId, MessageType type, const std::vector<uint8_t>& content);
+    bool sendMessage(const std::vector<uint8_t>& targetId, MessageType type, const std::vector<uint8_t>& content);
     bool sendMessage(const std::string& targetUserIdStr, MessageType type, const std::vector<uint8_t>& content);
     // Text message convenience method 
     bool sendTextMessage(const std::vector<uint8_t>& targetId, const std::string& message);

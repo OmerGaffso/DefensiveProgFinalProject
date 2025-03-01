@@ -12,6 +12,7 @@ void UI::displayMenu() const
 		"150) Send a text message\n"
 		"151) Send a request for symmetric key\n"
 		"152) Send your symmetric key\n"
+		"153) Send file\n"
 		"0) Exit client\n"
 		"\n>>";
 }

@@ -3,7 +3,7 @@
     and user info.
 */
 #pragma once
-#include "GenDef.h"
+#include "Utility.h"
 #include <fstream>
 
 #define MIN_PORT 1024

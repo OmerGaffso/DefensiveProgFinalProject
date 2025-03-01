@@ -1,5 +1,5 @@
 #pragma once
-#include "GenDef.h"
+#include "Utility.h"
 
 class InputHandler
 {

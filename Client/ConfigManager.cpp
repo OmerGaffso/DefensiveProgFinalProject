@@ -19,7 +19,7 @@ bool ConfigManager::parseConfigFile(const std::string& filename)
         return false;
     }
     //
-    line = trim(line); // trim whitespaces.
+    line = ClientUtils::trim(line); // trim whitespaces.
     //
     // Expected format: ip_addr:port
     size_t separator_pos = line.find(':');

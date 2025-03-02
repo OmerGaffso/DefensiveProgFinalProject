@@ -1,19 +1,98 @@
 #include "Application.h"
+#include "Utility.h"
 
-Application::Application() : appRunning(true)
+Application::Application() : m_appRunning(true)
 {
-    inputHandler = new ConsoleInputHandler(); // 
+
 }
 
 Application::~Application()
 {
-    delete inputHandler;
+
 }
 
 void Application::run()
 {
-    ui.displayMenu();
-    std::string userInput = inputHandler->getInput();
+    m_ui.displayMenu();
 
-    std::cout << "User Input was: " << userInput << "\n";
+}
+
+void Application::registerUser()
+{
+    if (m_config.getUserInfo())
+    {
+        m_ui.displayError("Registration not allowed. User already exists.\n");
+        return;
+    }
+    //
+    std::string username;
+    std::cout << "Enter username: ";
+    std::getline(std::cin >> std::ws, username);
+    //
+    if (isValidUsername(username))
+    {
+        m_ui.displayError("Invalid username.\n");
+        return;
+    }
+    //
+    // Send request to server TODO - add implementation
+    m_ui.displayMessage("Registering user: " + username);
+}
+//
+void Application::requestClientList()
+{
+    m_ui.displayMessage("Requesting client list...\n");
+    // TODO- add logic here
+}
+//
+void Application::requestPublicKey()
+{
+    std::string targetUsername;
+    std::cout << "Enter target username: ";
+    std::getline(std::cin >> std::ws, targetUsername);
+    //
+    if (isValidUsername(targetUsername))
+    {
+        m_ui.displayError("Invalid target username.\n");
+        return;
+    }
+    //
+    // Send request to server
+    m_ui.displayMessage("Requesting public key for: " + targetUsername);
+    // TODO - add logic
+}
+//
+void Application::requestPendingMessages()
+{
+
+}
+//
+void Application::requestSymmetricKey()
+{
+
+}
+//
+void Application::sendTextMessage()
+{
+
+}
+//
+void Application::sendSymmetricKey()
+{
+
+}
+//
+void Application::sendFile()
+{
+
+}
+//
+void Application::exitProgram()
+{
+
+}
+//
+void Application::processUserInput(int choice)
+{
+
 }

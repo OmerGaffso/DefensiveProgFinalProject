@@ -12,5 +12,5 @@ std::string trim(const std::string& str)
 
 bool isValidUsername(const std::string& username)
 {
-    return username.length() >= MIN_USERNAME_LEN && username.length() < MAX_USERNAME_SIZE;
+    return username.empty() && username.length() > USERNAME_MAX_LENGTH;
 }

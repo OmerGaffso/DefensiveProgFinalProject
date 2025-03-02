@@ -1,35 +1,36 @@
 /*
 Application.h class
-This class will 
+This class will
 */
 #pragma once
 #include <unordered_map>
 #include <functional>
 #include "UI.h"
-#include "InputHandler.h"
-#include "ConsoleInput.h"
-#include "FileInput.h"
+#include "ConfigManager.h"
 
 class Application
 {
 private:
-	InputHandler* inputHandler;
-	UI ui;
-	bool appRunning;
-	std::unordered_map<int, std::function<void()>> commandMap;
-
-	void initCommands();
+    UI                                             m_ui;
+    bool                                           m_appRunning;
+    ConfigManager                                  m_config;
+    std::unordered_map<int, std::function<void()>> m_commandMap;
+    //
+    // Command handling functions
+    void registerUser();
+    void requestClientList();
+    void requestPublicKey();
+    void requestPendingMessages();
+    void requestSymmetricKey();
+    void sendTextMessage();
+    void sendSymmetricKey();
+    void sendFile();
+    void exitProgram();
+    //
+    void processUserInput(int choice);
+    //
 public:
-	Application();
-	~Application();
-
-	void run();
-	void processChoice(int choice);
-
-	// Command functions:
-	void registerUser();
-	void requestClientList();
-	void requestPublicKey();
-
+    Application();
+    void run();
 };
 

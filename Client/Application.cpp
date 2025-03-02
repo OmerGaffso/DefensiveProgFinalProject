@@ -1,6 +1,6 @@
 #include "Application.h"
 
-Application::Application()
+Application::Application() : appRunning(true)
 {
     inputHandler = new ConsoleInputHandler(); // 
 }

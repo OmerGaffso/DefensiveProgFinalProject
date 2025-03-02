@@ -1,24 +1,31 @@
 #include "UI.h"
 
-using namespace std;
 
-void UI::displayMenu() const
+class UI
 {
-	cout << "MessageU client at your service\n\n";
-	cout << "110) Register\n"
-		"120) Request for clients list\n"
-		"130) Request for public key\n"
-		"140) Request for waiting messages\n"
-		"150) Send a text message\n"
-		"151) Send a request for symmetric key\n"
-		"152) Send your symmetric key\n"
-		"153) Send file\n"
-		"0) Exit client\n"
-		"\n>>";
-}
+public:
+    void displayMenu() const
+    {
+        std::cout << "MessageU client at your service\n\n";
+        std::cout << "110) Register\n"
+            "120) Request for clients list\n"
+            "130) Request for public key\n"
+            "140) Request for waiting messages\n"
+            "150) Send a text message\n"
+            "151) Send a request for symmetric key\n"
+            "152) Send your symmetric key\n"
+            "153) Send file\n"
+            "0) Exit client\n"
+            "\n>>";
+    }
 
-string UI::getUserInput() const
-{
+    void displayError(const std::string& errMsg) const
+    {
+        std::cout << "Error: " << errMsg << std::endl;
+    }
 
-	return "";
-}
+    void displayMessage(const std::string& msg) const
+    {
+        std::cout << "Message: " << msg << std::endl;
+    }
+};

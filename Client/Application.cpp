@@ -3,20 +3,40 @@
 
 Application::Application() : m_appRunning(true)
 {
+    m_commandMap[110] = [this]() {registerUser(); };
+    m_commandMap[120] = [this]() {requestClientList(); };
+    m_commandMap[130] = [this]() {requestPublicKey(); };
+    m_commandMap[140] = [this]() {requestPendingMessages(); };
+    m_commandMap[150] = [this]() {sendTextMessage(); };
+    m_commandMap[151] = [this]() {requestSymmetricKey(); };
+    m_commandMap[152] = [this]() {sendSymmetricKey(); };
+    m_commandMap[153] = [this]() {sendFile(); };
+    m_commandMap[0]   = [this]() {exitProgram(); };
 
 }
-
-Application::~Application()
-{
-
-}
-
+//
 void Application::run()
 {
-    m_ui.displayMenu();
-
+    auto serverInfo = m_config.getServerInfo();
+    if (!serverInfo)
+    {
+        m_ui.displayError("Failed to load server info.\n");
+        return;
+    }
+    std::string serverIP   = serverInfo->first;
+    uint16_t    serverPort = serverInfo->second;
+    //
+    // Doesn't matter if the user exist (my.info) display the menu.
+    
+    while (m_appRunning)
+    {
+        m_ui.displayMenu();
+        int choice;
+        std::cin >> choice;
+        processUserInput(choice);
+    }
 }
-
+//
 void Application::registerUser()
 {
     if (m_config.getUserInfo())
@@ -89,10 +109,15 @@ void Application::sendFile()
 //
 void Application::exitProgram()
 {
-
+    m_ui.displayMessage("Exiting application...\n");
+    m_appRunning = false;
 }
 //
 void Application::processUserInput(int choice)
 {
-
+    auto it = m_commandMap.find(choice);
+    if (it != m_commandMap.end())
+        it->second();
+    else
+        m_ui.displayError("Invalid option. Try again.\n");
 }

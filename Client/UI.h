@@ -12,4 +12,9 @@ public:
     void displayMenu() const;
     void displayError(const std::string& errMsg) const;
     void displayMessage(const std::string& msg) const;
+    int  getUserInput();
+    std::string getTargetUsername();
+    std::string getUsername();
+    std::string getMessasge();
+    std::string getFilePath();
 };

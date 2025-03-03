@@ -30,8 +30,16 @@ bool NetworkManager::sendPacket(const Packet& packet)
     if (!m_connected)
         return false;
     //
-    std::vector<uint8_t> data = packet.serialize();
-    return writeExact(data.data(), data.size());
+    try
+    {
+        std::vector<uint8_t> data = packet.serialize();
+        return writeExact(data.data(), data.size());
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Send error: " << e.what() << std::endl;
+        return false;
+    }
 }
 //
 bool NetworkManager::receivePacket(Packet& packet)
@@ -39,17 +47,27 @@ bool NetworkManager::receivePacket(Packet& packet)
     if (!m_connected)
         return false;
     //
-    std::vector<uint8_t> headerBuffer(HEADER_SIZE);
-    if (!readExact(headerBuffer.data(), HEADER_SIZE))
+    try
+    {
+        std::vector<uint8_t> buffer(HEADER_SIZE);
+        if (!readExact(buffer.data(), HEADER_SIZE))
+            return false;
+        //
+        uint32_t payloadSize;
+        std::memcpy(&payloadSize, buffer.data() + PAYLOAD_SIZE_OFFSET, sizeof(payloadSize));
+        //
+        buffer.resize(HEADER_SIZE + payloadSize);
+        if (!readExact(buffer.data() + HEADER_SIZE, payloadSize))
+            return false;
+        //
+        packet.deserialize(buffer);
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Recieve error: " << e.what() << std::endl;
         return false;
-    //
-    PacketHeader header = Packet::deserialize(headerBuffer).header;
-    std::vector<uint8_t> payload(header.payloadSize);
-    if (!readExact(payload.data(), header.payloadSize))
-        return false;
-    //
-    packet = Packet(header.code, payload, header.clientId);
-    return true;
+    }
 }
 //
 void NetworkManager::disconnect()

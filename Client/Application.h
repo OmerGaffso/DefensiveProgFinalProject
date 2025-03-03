@@ -7,13 +7,16 @@ This class will
 #include <functional>
 #include "UI.h"
 #include "ConfigManager.h"
+#include "NetworkManager.h"
 
 class Application
 {
 private:
-    UI                                             m_ui;
+    std::unique_ptr<UI>                            m_ui;
     bool                                           m_appRunning;
-    ConfigManager                                  m_config;
+    std::unique_ptr<ConfigManager>                 m_config;
+    std::unique_ptr<NetworkManager>                m_network;
+    //
     std::unordered_map<int, std::function<void()>> m_commandMap;
     //
     // Command handling functions
@@ -31,6 +34,7 @@ private:
     //
 public:
     Application();
+    ~Application();
     void run();
 };
 

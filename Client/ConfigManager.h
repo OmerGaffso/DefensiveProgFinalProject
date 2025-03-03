@@ -18,27 +18,11 @@ class ConfigManager
 private:
     const std::string m_serverConfigFile = "server.info";
     const std::string m_userConfigFile   = "my.info";
-
-    //std::string m_serverIP;
-    //int         m_serverPort;
-    //bool        m_isValid;
-    //std::string m_errMsg;
-
-    // private methods:
-    //bool parseConfigFile(const std::string& filename);
-    bool validateIPAdder(const std::string& ip);
-    bool validatePort(const int port);
-
+    //
+    bool validateIPAdder(const std::string& ip) const;
+    bool validatePort(const uint16_t port) const;
 public:
     std::optional<std::pair < std::string, uint16_t >> getServerInfo() const;
     std::optional<std::tuple<std::string, std::string, std::string>> getUserInfo() const;
-    void createUserInfo(const std::string& username);
-
-    //bool isValid() const;
-    //std::string getErrorMsg() const;
-
-    //std::string getServerIp() const;
-    //int getServerPort() const;
-
 };
 

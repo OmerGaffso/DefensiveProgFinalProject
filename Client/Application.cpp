@@ -62,8 +62,17 @@ void Application::registerUser()
     try 
     {
         std ::string username = m_ui->getUsername();
-        // Send request to server TODO - add implementation
         m_ui->displayMessage("Registering user: " + username);
+        std::vector<uint8_t> usernameData(username.begin(), username.end());
+        std::array<uint8_t, CLIENT_ID_LEN> emptyClientId = {};
+        Packet packet(CODE_REGISTER_USER, usernameData, emptyClientId);
+        //
+        if (!m_network->sendPacket(packet))
+        {
+            m_ui->displayError("Failed to send registration request.");
+            return;
+        }
+        //
     }
     catch (const std::runtime_error& e)
     {

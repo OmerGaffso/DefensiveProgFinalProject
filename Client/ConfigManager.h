@@ -17,7 +17,7 @@ class ConfigManager
 {
 private:
     const std::string m_serverConfigFile = "server.info";
-    const std::string m_userConfigFile   = "my.info";
+    const std::string m_userConfigFile   = "me.info";
     //
     bool validateIPAdder(const std::string& ip) const;
     bool validatePort(const uint16_t port) const;

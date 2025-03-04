@@ -2,8 +2,23 @@
 #include <WinSock2.h>
 #include <stdexcept>
 
+PacketHeader::PacketHeader()
+{
+    std::array<uint8_t, CLIENT_ID_LENGTH> emptyId = {};
+    this->clientId    = emptyId;
+    this->code        = CODE_DEFAULT;
+    this->version     = 2;
+    this->payloadSize = 0;
+}
 PacketHeader::PacketHeader(const uint16_t opCode, uint32_t size, std::array<uint8_t, CLIENT_ID_LENGTH>& id)
     : version(PROTOCOL_VERSION), code(opCode), payloadSize(size), clientId(id) {};
+//
+Packet::Packet() 
+{ 
+    PacketHeader defHeader;
+    this->header  = defHeader;
+    this->payload = {};
+}
 //
 Packet::Packet(const uint16_t opCode, const std::vector<uint8_t>& data, std::array<uint8_t, CLIENT_ID_LENGTH>& id)
     : header(opCode, data.size(), id), payload(data) {}

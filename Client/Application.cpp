@@ -73,6 +73,22 @@ void Application::registerUser()
             return;
         }
         //
+        Packet resp;
+        if (!m_network->receivePacket(resp))
+        {
+            m_ui->displayError("No reponse from server.");
+            return;
+        }
+        //
+        if (resp.header.code == 2100) // TODO - Define response codes in constexpressions
+        {
+            //extract the client id from the payload here.
+            //generate private key
+            //save the username, client id and private key to the file
+            m_ui->displayMessage("Registration successful.");
+        }
+        else
+            m_ui->displayError("Registration failed.");
     }
     catch (const std::runtime_error& e)
     {

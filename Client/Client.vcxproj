@@ -104,10 +104,15 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\Dev\OpenU\Crypto++\cryptopp890;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>cryptlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Dev\OpenU\Crypto++\cryptopp890\x64\Output\Debug;C:\Dev\OpenU\Crypto++\cryptopp890\x64\Output\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -118,19 +123,30 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>C:\Dev\OpenU\Crypto++\cryptopp890;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>cryptlib.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\Dev\OpenU\Crypto++\cryptopp890\x64\Output\Debug;C:\Dev\OpenU\Crypto++\cryptopp890\x64\Output\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Client.cpp" />
-    <ClCompile Include="FileInput.cpp" />
-    <ClCompile Include="GenDef.h" />
-    <ClCompile Include="ConsoleInput.cpp" />
+    <ClCompile Include="AESWrapper.cpp" />
+    <ClCompile Include="Base64Wrapper.cpp" />
+    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="ClientListManager.cpp" />
+    <ClCompile Include="ConfigManager.cpp" />
+    <ClCompile Include="NetworkManager.cpp" />
+    <ClCompile Include="Packet.cpp" />
+    <ClCompile Include="RSAWrapper.cpp" />
+    <ClCompile Include="Utility.cpp" />
+    <ClCompile Include="Utility.h" />
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="UI.cpp" />
   </ItemGroup>
@@ -138,10 +154,14 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ConsoleInput.h" />
-    <ClInclude Include="FileInput.h" />
-    <ClInclude Include="InputHandler.h" />
+    <ClInclude Include="AESWrapper.h" />
+    <ClInclude Include="Base64Wrapper.h" />
+    <ClInclude Include="ClientListManager.h" />
+    <ClInclude Include="ConfigManager.h" />
     <ClInclude Include="Application.h" />
+    <ClInclude Include="NetworkManager.h" />
+    <ClInclude Include="Packet.h" />
+    <ClInclude Include="RSAWrapper.h" />
     <ClInclude Include="UI.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

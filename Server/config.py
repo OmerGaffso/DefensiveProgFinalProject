@@ -1,8 +1,6 @@
 import logging
 
-DEFAULT_PORT = 1357
-MIN_PORT_VAL = 1024
-MAX_PORT_VAL = 65535
+from constants import MIN_PORT_VAL, MAX_PORT_VAL, DEFAULT_PORT
 
 PORT_FILE    = "myport.info"
 

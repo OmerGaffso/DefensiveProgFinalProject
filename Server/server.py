@@ -73,7 +73,7 @@ class Server:
                 data.extend(chunk)
 
             # Ensure the full packet received
-            return bytes(data) if len(data) == CLIENT_HEADER_FORMAT + payload_size else None
+            return bytes(data) if len(data) == CLIENT_HEADER_SIZE + payload_size else None
 
         except Exception as e:
             logging.error(f"Error: Error receiving data: {e}")

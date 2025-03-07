@@ -33,8 +33,8 @@ MESSAGE_TYPE_SIZE  = 1
 MESSAGE_SIZE_FIELD = 4
 
 # Header
-CLIENT_HEADER_FORMAT = "!16sBHI"
-HEADER_FORMAT = "!BHI"
+CLIENT_HEADER_FORMAT = "<16sBHI"
+HEADER_FORMAT = "<BHI"
 CLIENT_HEADER_SIZE = 23  # Client ID (16) + Version (1) + Code (2) + Payload Size (4)
 SERVER_HEADER_SIZE = 7  # Version (1) + Code (2) + Payload Size (4)
 

@@ -40,7 +40,8 @@ class RequestHandler:
             return ResponsePacket(CODE_ERROR, b""), []  # Generic error response
 
     # Handles user registration request.
-    def handle_register_req(self, packet: RequestPacket, db: Database):
+    @staticmethod
+    def handle_register_req(packet: RequestPacket, db: Database):
         username = packet.payload[:USERNAME_SIZE].decode('ascii').rstrip('\x00')
         public_key = packet.payload[USERNAME_SIZE:]
 
@@ -49,20 +50,28 @@ class RequestHandler:
             db.print_database()
             return ResponsePacket(CODE_ERROR)  # Error
 
-        client_id = uuid.uuid4().hex
-        db.add_user(client_id, username, public_key)
-        logging.info(f"User: {username} added with UID: {client_id}")
+        client_id = uuid.uuid4().bytes
+        db.add_user(client_id.hex(), username, public_key)
+        logging.info(f"User: {username} added with UID: {client_id.hex()} UID size: {len(client_id)}")
         db.print_database()
-        return ResponsePacket(CODE_REGISTER_SUCCESS, client_id.encode())
+        return ResponsePacket(CODE_REGISTER_SUCCESS, client_id)
 
     # Handles client list request.
-    def handle_client_list_req(self, packet: RequestPacket, db: Database):
+    @staticmethod
+    def handle_client_list_req(packet: RequestPacket, db: Database):
         client_list = db.get_clients(exclude_id=packet.client_id)
-        payload = b"".join([cid.encode() + name.encode().ljust(USERNAME_SIZE, b'\x00') for cid, name in client_list])
+
+        if not client_list:
+            logging.info(f"DEBUG: No clients found in database.")
+            return ResponsePacket(CODE_CLIENT_LIST_RESPONSE, b"")
+
+        payload = b"".join([bytes.fromhex(cid) + name.encode().ljust(USERNAME_SIZE, b'\x00') for cid, name in client_list])
+        logging.info(f"DEBUG: Sending {len(client_list)} clients. Payload Size: {len(payload)} Bytes.")
         return ResponsePacket(CODE_CLIENT_LIST_RESPONSE, payload)
 
     # Handles public key request.
-    def handle_public_key_req(self, packet: RequestPacket, db: Database):
+    @staticmethod
+    def handle_public_key_req(packet: RequestPacket, db: Database):
         target_id = packet.payload[:CLIENT_ID_SIZE].decode()
         public_key = db.get_public_key(target_id)
         if public_key:
@@ -70,7 +79,8 @@ class RequestHandler:
         return ResponsePacket(CODE_ERROR)
 
     # Handles send message request.
-    def handle_send_msg_req(self, packet: RequestPacket, db: Database):
+    @staticmethod
+    def handle_send_msg_req(packet: RequestPacket, db: Database):
         target_id = packet.payload[:CLIENT_ID_SIZE].decode()
         message_type = packet.payload[CLIENT_ID_SIZE]
         content_size = int.from_bytes(packet.payload[17:21], 'big')
@@ -79,7 +89,8 @@ class RequestHandler:
         return ResponsePacket(CODE_SEND_MESSAGE_RESPONSE, target_id.encode() + message_id.to_bytes(4, "big"))
 
     # Handles pending messages request.
-    def handle_pending_msgs_req(self, packet: RequestPacket, db: Database):
+    @staticmethod
+    def handle_pending_msgs_req(packet: RequestPacket, db: Database):
         messages = db.get_pending_messages(packet.client_id)
 
         if not messages:

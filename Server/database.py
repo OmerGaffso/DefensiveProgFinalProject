@@ -23,7 +23,7 @@ class Database:
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS clients 
                     (
-                        ID TEXT PRIMARY KEY CHECK(LENGTH(ID) == 32), 
+                        ID TEXT PRIMARY KEY CHECK(LENGTH(ID) == 16), 
                         UserName TEXT UNIQUE NOT NULL CHECK(LENGTH(UserName) <= 255),
                         PublicKey BLOB UNIQUE NOT NULL CHECK(LENGTH(PublicKey) == 160), 
                         LastSeen DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP 
@@ -66,7 +66,8 @@ class Database:
         Add new user to the database.
         Return: True on success, False otherwise (duplicate username)
     """
-    def add_user(self, client_id: str, username:str, public_key: bytes) -> bool:
+    @staticmethod
+    def add_user(client_id: str, username:str, public_key: bytes) -> bool:
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
@@ -87,7 +88,8 @@ class Database:
         Retrieve all clients except the requesting client.
         Returns: a list of tuples (client_id, username)
     """
-    def get_clients(self, exclude_id: str) -> list[tuple]:
+    @staticmethod
+    def get_clients(exclude_id: str) -> list[tuple]:
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
@@ -97,12 +99,12 @@ class Database:
             logging.error(f"Database error: {e}")
             return []
 
-
     """
         Retrieve the public key of a given client ID.
         Returns: the public key if found, None otherwise.
     """
-    def get_public_key(self, client_id: str) -> bytes | None:
+    @staticmethod
+    def get_public_key(client_id: str) -> bytes | None:
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
@@ -117,7 +119,8 @@ class Database:
         Save a message in the database.
         Returns: The new message id on success, None otherwise
     """
-    def save_message(self, to_client: str,  from_client: str, msg_type: int, content: bytes) -> int | None:
+    @staticmethod
+    def save_message(to_client: str, from_client: str, msg_type: int, content: bytes) -> int | None:
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
@@ -135,7 +138,8 @@ class Database:
         Retrieve all pending messages for a specific client.
         Returns: a list of tuples (msg_id, from_client, msg_type, content)
     """
-    def get_pending_messages(self, client_id: str) -> list[tuple]:
+    @staticmethod
+    def get_pending_messages(client_id: str) -> list[tuple]:
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
@@ -151,7 +155,8 @@ class Database:
     """
         Delete multiple messages after it has been successfully sent.
     """
-    def delete_messages(self, msg_ids: list[int]) -> None:
+    @staticmethod
+    def delete_messages(msg_ids: list[int]) -> None:
         if not msg_ids:
             return
 
@@ -164,7 +169,8 @@ class Database:
             logging.error(f"Error: Failed to delete messages: {e}")
 
     # Print all tables. Used for debug
-    def print_database(self):
+    @staticmethod
+    def print_database():
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()

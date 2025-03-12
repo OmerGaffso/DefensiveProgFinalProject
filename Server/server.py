@@ -10,17 +10,17 @@ from request_packet import RequestPacket
 
 class Server:
     def __init__(self, port=1357):
-        self.host = "0.0.0.0"  # listen on all interfaces
+        self.host = "127.0.0.1"  # listen on all interfaces
         self.port = port
-        self.db = Database()
         self.handler = RequestHandler()
 
     # Start the server and listen for incoming connections:
     def start(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+            server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_socket.bind((self.host, self.port))
             server_socket.listen(MAX_CONNECTIONS)
-            logging.info(f"Server started on port{self.port}")
+            logging.info(f"Server started on port {self.port}")
 
             while True:
                 client_socket, addr = server_socket.accept()
@@ -30,6 +30,7 @@ class Server:
     # Handle the client connections (Now only 1, later more)
     def handle_client(self, client_socket):
         try:
+            db = Database()
             data = self.recv_full(client_socket)
             if not data:
                 return
@@ -39,14 +40,14 @@ class Server:
             packet = RequestPacket(data)
 
             # Process request
-            response_packet, message_ids = self.handler.handle_request(packet)
+            response_packet, message_ids = self.handler.handle_request(packet, db)
 
             # Send the response packet
             self.send_full(client_socket, response_packet.to_bytes())
 
             # If the request is pending messages, delete only after successful transmit
             if packet.code == CODE_PENDING_MESSAGES and message_ids:
-                self.db.delete_messages(message_ids)
+                db.delete_messages(message_ids)
                 logging.info(f"Deleted {len(message_ids)} messages for client {packet.client_id}")
         except Exception as e:
             logging.error(f"Error: Error handling client: {e}")
@@ -62,7 +63,7 @@ class Server:
             if not header or len(header) < CLIENT_HEADER_SIZE:
                 return None
 
-            _, _, payload_size = struct.unpack(CLIENT_HEADER_FORMAT, header)  # Unpack version, code and payload_size
+            client_id, client_version, client_code, payload_size = struct.unpack(CLIENT_HEADER_FORMAT, header)  # Unpack version, code and payload_size
 
             # Ensure full payload is received
             data = bytearray(header)

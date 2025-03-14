@@ -602,6 +602,7 @@ FodyWeavers.xsd
 
 # My files
 /Server/ClientSim/*
+/Server/ClientSim*
 /Server/*.db
 ### VisualStudio Patch ###
 # Additional files built by Visual Studio

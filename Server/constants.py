@@ -41,3 +41,6 @@ SERVER_HEADER_SIZE = 7  # Version (1) + Code (2) + Payload Size (4)
 # Database
 DB_FILE = "defensive.db"
 
+""" FOR DEBUGGING: TODO - DELETE LATER! """
+CODE_CLEAN_DB = 888
+RESP_DB_CLEANED = 1000

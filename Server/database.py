@@ -35,8 +35,8 @@ class Database:
                     CREATE TABLE IF NOT EXISTS messages
                     (
                         ID INTEGER PRIMARY KEY AUTOINCREMENT,
-                        ToClient TEXT NOT NULL CHECK(LENGTH(ToClient) == 32),
-                        FromClient TEXT TEXT NOT NULL CHECK(LENGTH(FromClient) == 32),
+                        ToClient TEXT NOT NULL CHECK(LENGTH(ToClient) == 16),
+                        FromClient TEXT TEXT NOT NULL CHECK(LENGTH(FromClient) == 16),
                         Type INTEGER NOT NULL CHECK(Type BETWEEN 1 AND 4),
                         Content BLOB NOT NULL
                     )
@@ -67,7 +67,7 @@ class Database:
         Return: True on success, False otherwise (duplicate username)
     """
     @staticmethod
-    def add_user(client_id: str, username:str, public_key: bytes) -> bool:
+    def add_user(client_id: bytes, username: str, public_key: bytes) -> bool:
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
@@ -89,8 +89,9 @@ class Database:
         Returns: a list of tuples (client_id, username)
     """
     @staticmethod
-    def get_clients(exclude_id: str) -> list[tuple]:
+    def get_clients(exclude_id: bytes) -> list[tuple]:
         try:
+            # exclude_id_hex = exclude_id.hex()
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT ID, UserName FROM clients WHERE ID != ?", (exclude_id,))
@@ -203,3 +204,16 @@ class Database:
                         print("No data in this table.")
         except sqlite3.Error as e:
             logging.error(f"Database error: {e}")
+
+    # Delete all records from the database for debugging
+    @staticmethod
+    def clear_database():
+        try:
+            with sqlite3.connect(DB_FILE) as conn:
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM clients;")
+                cursor.execute("DELETE FROM messages;")
+                conn.commit()
+                logging.warning("Debug: All database records cleared")
+        except sqlite3.Error as e:
+            logging.error(f"Error clearing database: {e}")

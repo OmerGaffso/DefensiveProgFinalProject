@@ -1,5 +1,7 @@
 #include "Application.h"
 #include "Utility.h"
+#include "RSAWrapper.h"
+#include "Base64Wrapper.h"
 
 Application::Application() : m_appRunning(true)
 {
@@ -41,8 +43,15 @@ void Application::run()
     std::string serverIP   = serverInfo->first;
     uint16_t    serverPort = serverInfo->second;
     //
-    // Doesn't matter if the user exist (my.info) display the menu.
-    
+    if (!m_network->ConnectToServer(serverIP, serverPort))
+    {
+        m_ui->displayError("Failed to connect to the server.\n");
+        return;
+    }
+    //
+    if (m_client.loadFromFile(m_config->getConfigFilePath()))
+        m_ui->displayMessage("Client info loaded: " + m_client.getUsername());
+    //
     while (m_appRunning)
     {
         m_ui->displayMenu();
@@ -53,19 +62,35 @@ void Application::run()
 //
 void Application::registerUser()
 {
-    if (m_config->getUserInfo())
-    {
-        m_ui->displayError("Registration not allowed. User already exists.\n");
-        return;
-    }
-    //
     try 
     {
+        if (!m_client.getUsername().empty())
+        {
+            m_ui->displayError("Registration not allowed. User already exists.\n");
+            return;
+        }
+        //
         std ::string username = m_ui->getUsername();
-        m_ui->displayMessage("Registering user: " + username);
         std::vector<uint8_t> usernameData(username.begin(), username.end());
+        //
+        // Generate keys
+        RSAPrivateWrapper privateKey;
+        std::string privateKeyBase64 = Base64Wrapper::encode(privateKey.getPrivateKey());
+        std::string publicKeyBase64 = Base64Wrapper::encode(privateKey.getPublicKey());
+        //
+        if (publicKeyBase64.size() > REGISTER_PUBLIC_KEY_LEN)
+            publicKeyBase64 = publicKeyBase64.substr(0, REGISTER_PUBLIC_KEY_LEN);
+        else
+            publicKeyBase64.append(REGISTER_PUBLIC_KEY_LEN - publicKeyBase64.size(), '\0');
+        //
+        std::vector<uint8_t> payload;
+        payload.insert(payload.end(), username.begin(), username.end());
+        payload.resize(REGISTER_USERNAME_LEN, '\0'); // ensure username size 255
+        payload.insert(payload.end(), publicKeyBase64.begin(), publicKeyBase64.end());
+        //
         std::array<uint8_t, CLIENT_ID_LENGTH> emptyClientId = {};
-        Packet packet(CODE_REGISTER_USER, usernameData, emptyClientId);
+        emptyClientId.fill(0);
+        Packet packet(CODE_REGISTER_USER, payload, emptyClientId);
         //
         if (!m_network->sendPacket(packet))
         {
@@ -80,11 +105,17 @@ void Application::registerUser()
             return;
         }
         //
-        if (resp.header.code == 2100) // TODO - Define response codes in constexpressions
-        {
-            //extract the client id from the payload here.
-            //generate private key
-            //save the username, client id and private key to the file
+        if (resp.header.code == RESP_CODE_REGISTER_SUCCCESS)         {
+            std::array<uint8_t, CLIENT_ID_LENGTH> clientId;
+            std::memcpy(clientId.data(), resp.payload.data(), CLIENT_ID_LENGTH);
+            //
+            m_client.setUsername(username);
+            m_client.setClientId(clientId);
+            m_client.setPrivateKey(privateKeyBase64);
+            m_client.setPublicKey(publicKeyBase64);
+            //
+            m_client.saveToFile(m_config->getConfigFilePath());
+            //
             m_ui->displayMessage("Registration successful.");
         }
         else

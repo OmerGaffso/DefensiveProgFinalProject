@@ -49,15 +49,15 @@ bool NetworkManager::receivePacket(Packet& packet)
     //
     try
     {
-        std::vector<uint8_t> buffer(HEADER_SIZE);
-        if (!readExact(buffer.data(), HEADER_SIZE))
+        std::vector<uint8_t> buffer(SERVER_HEADER_SIZE);
+        if (!readExact(buffer.data(), SERVER_HEADER_SIZE))
             return false;
         //
         uint32_t payloadSize;
         std::memcpy(&payloadSize, buffer.data() + PAYLOAD_SIZE_OFFSET, sizeof(payloadSize));
         //
-        buffer.resize(HEADER_SIZE + payloadSize);
-        if (!readExact(buffer.data() + HEADER_SIZE, payloadSize))
+        buffer.resize(SERVER_HEADER_SIZE + payloadSize);
+        if (!readExact(buffer.data() + SERVER_HEADER_SIZE, payloadSize))
             return false;
         //
         packet.deserialize(buffer);

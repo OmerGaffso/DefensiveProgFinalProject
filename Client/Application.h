@@ -8,6 +8,7 @@ This class will
 #include "UI.h"
 #include "ConfigManager.h"
 #include "NetworkManager.h"
+#include "ClientInfo.h"
 
 class Application
 {
@@ -16,6 +17,7 @@ private:
     bool                                           m_appRunning;
     std::unique_ptr<ConfigManager>                 m_config;
     std::unique_ptr<NetworkManager>                m_network;
+    ClientInfo m_client;
     //
     std::unordered_map<int, std::function<void()>> m_commandMap;
     //

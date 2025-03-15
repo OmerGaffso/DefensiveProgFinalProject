@@ -26,7 +26,7 @@ Packet::Packet(const uint16_t opCode, const std::vector<uint8_t>& data, std::arr
 std::vector<uint8_t> Packet::serialize() const
 {
     size_t pos = 0;
-    std::vector<uint8_t> buffer(HEADER_SIZE + payload.size());
+    std::vector<uint8_t> buffer(CLIENT_HEADER_SIZE + payload.size());
     //
     std::memcpy(buffer.data(), header.clientId.data(), CLIENT_ID_LENGTH);
     buffer[CLIENT_ID_LENGTH] = header.version;
@@ -39,14 +39,21 @@ std::vector<uint8_t> Packet::serialize() const
     uint32_t payloadSize = htonl(header.payloadSize);
     std::memcpy(buffer.data() + pos, &payloadSize, PAYLOAD_SIZE_LENGTH);
     //
-    std::memcpy(buffer.data() + HEADER_SIZE, payload.data(), payload.size());
+    std::memcpy(buffer.data() + CLIENT_HEADER_SIZE, payload.data(), payload.size());
+    //
+    //
+    // Debugging Output
+    std::cout << "Serialized Packet (Hex): ";
+    for (uint8_t byte : buffer)
+        printf("%02X ", byte);
+    std::cout << std::endl;
     //
     return buffer;
 }
 //
 Packet Packet::deserialize(const std::vector<uint8_t>& buffer)
 {
-    if (buffer.size() < HEADER_SIZE)
+    if (buffer.size() < SERVER_HEADER_SIZE)
         throw std::runtime_error("Invalid packet size\n");
     //
     std::array<uint8_t, CLIENT_ID_LENGTH> id;
@@ -67,6 +74,6 @@ Packet Packet::deserialize(const std::vector<uint8_t>& buffer)
     std::memcpy(&size, buffer.data() + pos, PAYLOAD_SIZE_LENGTH);
     size = ntohl(size);
     //
-    std::vector<uint8_t> payload(buffer.begin() + HEADER_SIZE, buffer.end());
+    std::vector<uint8_t> payload(buffer.begin() + SERVER_HEADER_SIZE, buffer.end());
     return Packet(code, payload, id);
 }

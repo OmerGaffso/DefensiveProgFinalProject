@@ -74,7 +74,7 @@ std::optional<std::tuple<std::string, std::string, std::string>> ConfigManager::
     std::ifstream file(m_userConfigFile);
     if (!file.is_open())
     {
-        throw std::runtime_error("Error: " + m_userConfigFile + " not found\n");
+        std::cerr << ("Warning: " + m_userConfigFile + " not found. Assuming first-time registration.\n");
         return std::nullopt;
     }
     std::cout << file.rdbuf(); // debug- print all file contents todo - delete later!
@@ -82,7 +82,7 @@ std::optional<std::tuple<std::string, std::string, std::string>> ConfigManager::
     std::string username, uniqueId, privateKey;
     if (!std::getline(file, username) || !std::getline(file, uniqueId) || !std::getline(file, privateKey))
     {
-        throw std::runtime_error("Error: Invalid user info file format\n");
+        std::cerr << ("Error: Invalid user info file format\n");
         return std::nullopt;
     }
     //

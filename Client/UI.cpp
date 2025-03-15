@@ -1,5 +1,4 @@
 #include "UI.h"
-#include "Utility.h"
 
 
 void UI::displayMenu() const
@@ -57,7 +56,7 @@ std::string UI::getUsername()
     std::string username;
     std::cin >> username;
     //
-    if (!isValidUsername(username))
+    if (isValidUsername(username))
     {
         throw std::runtime_error("Invalid username format.\n");
         return "";

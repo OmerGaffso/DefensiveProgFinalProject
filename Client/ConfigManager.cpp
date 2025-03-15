@@ -30,7 +30,10 @@ std::optional<std::pair < std::string, uint16_t >> ConfigManager::getServerInfo(
         throw std::runtime_error("Failed to open file: " + m_serverConfigFile);
         return std::nullopt;
     }
-    std::cout << file.rdbuf(); // debug- print all file contents todo - delete later!
+    // debug- print all file contents todo - delete later!
+    std::cout << file.rdbuf(); 
+    file.clear();
+    file.seekg(0, std::ios::beg);
     //
     std::string line;
     if (!std::getline(file, line))
@@ -61,7 +64,7 @@ std::optional<std::pair < std::string, uint16_t >> ConfigManager::getServerInfo(
     }
     //
     // TODO- DEBUG, DELETE PRINT
-    std::cout << "IP: " << ip << " PORT: " << port << std::endl;
+    std::cout << "\nIP: " << ip << " PORT: " << port << std::endl;
     //
     return std::make_pair(ip, port);
 }

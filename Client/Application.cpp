@@ -64,7 +64,7 @@ void Application::registerUser()
         std ::string username = m_ui->getUsername();
         m_ui->displayMessage("Registering user: " + username);
         std::vector<uint8_t> usernameData(username.begin(), username.end());
-        std::array<uint8_t, CLIENT_ID_LEN> emptyClientId = {};
+        std::array<uint8_t, CLIENT_ID_LENGTH> emptyClientId = {};
         Packet packet(CODE_REGISTER_USER, usernameData, emptyClientId);
         //
         if (!m_network->sendPacket(packet))

@@ -51,5 +51,7 @@ constexpr size_t MESSAGE_CONTENT_LEN = 4;
 
 constexpr uint8_t USERNAME_MAX_LENGTH = 254; // leaving place for null termination. 
 
-bool isValidUsername(const std::string& username);
-std::string trim(const std::string& str);
+inline bool isValidUsername(const std::string& username)
+{
+    return username.empty() || username.length() > USERNAME_MAX_LENGTH;
+}

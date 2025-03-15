@@ -1,5 +1,6 @@
 #pragma once
-#include "Packet.h"
+#include "ClientPacket.h"
+#include "ServerPacket.h"
 #include <boost/asio.hpp>
 #include <string>
 #include <iostream>
@@ -18,8 +19,8 @@ public:
     ~NetworkManager();
     //
     bool ConnectToServer(const std::string& ip, uint16_t port);
-    bool sendPacket(const Packet& packet);
-    bool receivePacket(Packet& packet);
+    bool sendPacket(const ClientPacket& packet);
+    bool receivePacket(ServerPacket& packet);
     void disconnect();
 };
 

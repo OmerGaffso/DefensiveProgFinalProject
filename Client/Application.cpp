@@ -1,5 +1,7 @@
 #include "Application.h"
 #include "Utility.h"
+#include "ServerPacket.h"
+#include "ClientPacket.h"
 #include "RSAWrapper.h"
 #include "Base64Wrapper.h"
 
@@ -88,9 +90,10 @@ void Application::registerUser()
         payload.resize(REGISTER_USERNAME_LEN, '\0'); // ensure username size 255
         payload.insert(payload.end(), publicKeyBase64.begin(), publicKeyBase64.end());
         //
+        // Create the client packet
         std::array<uint8_t, CLIENT_ID_LENGTH> emptyClientId = {};
         emptyClientId.fill(0);
-        Packet packet(CODE_REGISTER_USER, payload, emptyClientId);
+        ClientPacket packet(CODE_REGISTER_USER, payload, emptyClientId);
         //
         if (!m_network->sendPacket(packet))
         {
@@ -98,7 +101,7 @@ void Application::registerUser()
             return;
         }
         //
-        Packet resp;
+        ServerPacket resp;
         if (!m_network->receivePacket(resp))
         {
             m_ui->displayError("No reponse from server.");

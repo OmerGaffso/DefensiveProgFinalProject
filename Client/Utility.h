@@ -2,6 +2,9 @@
 
 #include <iostream>
 #include <string>
+#include <array>
+#include <vector>
+#include <cstdint>
 
 #define MIN_PORT 1024
 #define MAX_PORT 65535
@@ -16,6 +19,7 @@ constexpr size_t  PAYLOAD_SIZE_OFFSET = CLIENT_ID_LENGTH + VERSION_LENGTH + CODE
 constexpr size_t  PAYLOAD_SIZE_LENGTH = 4;
 constexpr size_t  CLIENT_HEADER_SIZE = CLIENT_ID_LENGTH + VERSION_LENGTH + CODE_LENGTH + PAYLOAD_SIZE_LENGTH;
 constexpr size_t  SERVER_HEADER_SIZE = VERSION_LENGTH + CODE_LENGTH + PAYLOAD_SIZE_LENGTH;
+constexpr size_t  SERVER_PAYLOAD_SIZE_OFFSET = VERSION_LENGTH + CODE_LENGTH;
 //
 // Constants
 constexpr uint8_t PROTOCOL_VERSION = 2;

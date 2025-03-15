@@ -57,16 +57,33 @@ class Server:
     """
         Receives the full packet by first reading the header to determine payload size 
     """
+
     def recv_full(self, client_socket):
         try:
             header = client_socket.recv(CLIENT_HEADER_SIZE)  # client_id(16) + version(1) + code(2) + payload_size (4)
             if not header or len(header) < CLIENT_HEADER_SIZE:
                 return None
 
-            client_id, client_version, client_code, payload_size = struct.unpack(CLIENT_HEADER_FORMAT, header)  # Unpack version, code and payload_size
+            print(f"Received Raw Header (Hex): {header.hex()}")
+
+            # client_id, client_version, client_code, payload_size = struct.unpack(CLIENT_HEADER_FORMAT, header)  # Unpack version, code and payload_size
+            client_id = header[:16]  # first 16 bytes
+            client_version = header[16]  # 17th byte
+
+            client_code = int.from_bytes(header[17:19], byteorder="big")
+            payload_size = int.from_bytes(header[19:23], byteorder='big')
+
+            print(
+                f"Parsed Values - Client ID: {client_id.hex()}, Version: {client_version}, Code: {client_code}, Payload Size: {payload_size}")
+
+            little_end_header = (client_id +
+                                 bytes([client_version]) +
+                                 client_code.to_bytes(2, byteorder="little") +
+                                 payload_size.to_bytes(4, byteorder="little")
+                                 )
 
             # Ensure full payload is received
-            data = bytearray(header)
+            data = bytearray(little_end_header)
             while len(data) < CLIENT_HEADER_SIZE + payload_size:
                 chunk = client_socket.recv(CHUNK_SIZE)  # Read chunks of data
                 if not chunk:
@@ -83,6 +100,7 @@ class Server:
     """
         Sends the full data, ensuring the bytes are transmitted.
     """
+
     def send_full(self, client_socket, data):
         try:
             total_sent = 0

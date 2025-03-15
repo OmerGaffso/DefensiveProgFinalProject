@@ -25,7 +25,7 @@ bool NetworkManager::ConnectToServer(const std::string& ip, uint16_t port)
     }
 }
 //
-bool NetworkManager::sendPacket(const Packet& packet)
+bool NetworkManager::sendPacket(const ClientPacket& packet)
 {
     if (!m_connected)
         return false;
@@ -42,7 +42,7 @@ bool NetworkManager::sendPacket(const Packet& packet)
     }
 }
 //
-bool NetworkManager::receivePacket(Packet& packet)
+bool NetworkManager::receivePacket(ServerPacket& packet)
 {
     if (!m_connected)
         return false;
@@ -54,13 +54,13 @@ bool NetworkManager::receivePacket(Packet& packet)
             return false;
         //
         uint32_t payloadSize;
-        std::memcpy(&payloadSize, buffer.data() + PAYLOAD_SIZE_OFFSET, sizeof(payloadSize));
+        std::memcpy(&payloadSize, buffer.data() + SERVER_PAYLOAD_SIZE_OFFSET, sizeof(payloadSize));
         //
         buffer.resize(SERVER_HEADER_SIZE + payloadSize);
         if (!readExact(buffer.data() + SERVER_HEADER_SIZE, payloadSize))
             return false;
         //
-        packet.deserialize(buffer);
+        packet = ServerPacket::deserialize(buffer);
         return true;
     }
     catch (const std::exception& e)

@@ -119,6 +119,6 @@ class RequestHandler:
 
     # Handles invalid requests.
     @staticmethod
-    def handle_invalid_requests(packet: RequestPacket):
+    def handle_invalid_requests(packet: RequestPacket, db: Database):
         return ResponsePacket(CODE_ERROR)
 

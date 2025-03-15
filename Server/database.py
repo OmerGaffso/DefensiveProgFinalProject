@@ -23,7 +23,7 @@ class Database:
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS clients 
                     (
-                        ID TEXT PRIMARY KEY CHECK(LENGTH(ID) == 16), 
+                        ID TEXT UNIQUE PRIMARY KEY CHECK(LENGTH(ID) == 16), 
                         UserName TEXT UNIQUE NOT NULL CHECK(LENGTH(UserName) <= 255),
                         PublicKey BLOB UNIQUE NOT NULL CHECK(LENGTH(PublicKey) == 160), 
                         LastSeen DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP 

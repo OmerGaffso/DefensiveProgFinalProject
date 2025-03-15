@@ -87,6 +87,7 @@ class RequestHandler:
         content_size = int.from_bytes(packet.payload[17:21], 'big')
         message_content = packet.payload[21:]  # TODO - Change magic numbers!
         message_id = db.save_message(target_id, packet.client_id, message_type, message_content)
+        db.print_database()
         return ResponsePacket(CODE_SEND_MESSAGE_RESPONSE, target_id + message_id.to_bytes(4, "big"))
 
     # Handles pending messages request.
@@ -105,7 +106,7 @@ class RequestHandler:
             msg[3]  # msg[3] is the message content
             for msg in messages
         ])
-        db.delete_messages([msg[1] for msg in messages])
+        db.delete_messages([msg[0] for msg in messages])
         return ResponsePacket(CODE_PENDING_MESSAGES_RESPONSE, payload)
 
     # Used for debug - will clean the database completely
@@ -113,6 +114,7 @@ class RequestHandler:
     def debug_clear_database(packet: RequestPacket, db: Database):
         logging.warning("Debug: Clearing the database")
         db.clear_database()
+        db.print_database()
         return ResponsePacket(RESP_DB_CLEANED, b"Database cleared successfully")
 
     # Handles invalid requests.

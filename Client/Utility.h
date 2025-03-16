@@ -24,6 +24,16 @@ constexpr size_t  SERVER_PAYLOAD_SIZE_OFFSET = VERSION_LENGTH + CODE_LENGTH;
 // Constants
 constexpr uint8_t PROTOCOL_VERSION = 2;
 //
+// Menu Options:
+constexpr uint16_t OPT_EXIT              = 0;
+constexpr uint16_t OPT_REGISTER          = 110;
+constexpr uint16_t OPT_REQ_CLIENT_LIST   = 120;
+constexpr uint16_t OPT_REQ_PUBLIC_KEY    = 130;
+constexpr uint16_t OPT_REQ_PENDING_MSGS  = 140;
+constexpr uint16_t OPT_SEND_TEXT_MSG     = 150;
+constexpr uint16_t OPT_REQ_SYMETRIC_KEY  = 151;
+constexpr uint16_t OPT_SEND_SYMETRIC_KEY = 152;
+constexpr uint16_t OPT_SEND_FILE         = 153;
 // === Request Codes ===
 constexpr uint16_t CODE_DEFAULT = 0;
 constexpr uint16_t CODE_REGISTER_USER        = 600; 

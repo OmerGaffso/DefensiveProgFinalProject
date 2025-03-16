@@ -5,6 +5,8 @@
 #include "RSAWrapper.h"
 #include "Base64Wrapper.h"
 
+static bool isRegistered = false;
+
 Application::Application() : m_appRunning(true)
 {
     std::cout << "Starting application:\n";
@@ -15,15 +17,15 @@ Application::Application() : m_appRunning(true)
     //
     m_commandMap =
     {
-        {110, [this]() { registerUser(); }},
-        {120, [this]() { requestClientList(); }},
-        {130, [this]() { requestPublicKey(); }},
-        {140, [this]() { requestPendingMessages(); }},
-        {150, [this]() { sendTextMessage(); }},
-        {151, [this]() { requestSymmetricKey(); }},
-        {152, [this]() { sendSymmetricKey(); }},
-        {153, [this]() { sendFile(); }},
-        {0  , [this]() { exitProgram(); }},
+        {OPT_REGISTER,          [this]() { registerUser(); }},
+        {OPT_REQ_CLIENT_LIST,   [this]() { requestClientList(); }},
+        {OPT_REQ_PUBLIC_KEY,    [this]() { requestPublicKey(); }},
+        {OPT_REQ_PENDING_MSGS,  [this]() { requestPendingMessages(); }},
+        {OPT_SEND_TEXT_MSG,     [this]() { sendTextMessage(); }},
+        {OPT_REQ_SYMETRIC_KEY,  [this]() { requestSymmetricKey(); }},
+        {OPT_SEND_SYMETRIC_KEY, [this]() { sendSymmetricKey(); }},
+        {OPT_SEND_FILE,         [this]() { sendFile(); }},
+        {OPT_EXIT,              [this]() { exitProgram(); }},
 
     };
 }
@@ -51,7 +53,9 @@ void Application::run()
         return;
     }
     //
-    if (m_client.loadFromFile(m_config->getConfigFilePath()))
+    // Load client info and check if registered
+    isRegistered = m_client.loadFromFile(m_config->getConfigFilePath());
+    if (isRegistered)
         m_ui->displayMessage("Client info loaded: " + m_client.getUsername());
     //
     while (m_appRunning)
@@ -130,6 +134,7 @@ void Application::registerUser()
             m_client.saveToFile(m_config->getConfigFilePath());
             //
             m_ui->displayMessage("Registration successful.");
+            isRegistered = true;
         }
         else
             m_ui->displayError("Registration failed.");
@@ -259,6 +264,13 @@ void Application::exitProgram()
 //
 void Application::processUserInput(int choice)
 {
+    // If user is not registered, allow only Register or Exit options
+    if (!isRegistered && choice != OPT_REGISTER && choice != OPT_EXIT)
+    {
+        m_ui->displayError("You must register first.");
+        return;
+    }
+    //
     auto it = m_commandMap.find(choice);
     if (it != m_commandMap.end())
         it->second();

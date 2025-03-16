@@ -18,12 +18,12 @@ void UI::displayMenu() const
 //
 void UI::displayError(const std::string& errMsg) const
 {
-    std::cout << "Error: " << errMsg << std::endl;
+    std::cout << "Error: " << errMsg << std::endl << std::endl;
 }
 //
 void UI::displayMessage(const std::string& msg) const
 {
-    std::cout << msg << std::endl;
+    std::cout << msg << std::endl << std::endl;
 }
 //
 // TODO - VALIDATE INPUT

@@ -22,7 +22,7 @@ private:
     ClientInfo                                     m_client;
     ClientListManager                              m_clientList;
     //
-    std::unordered_map<int, std::function<void()>> m_commandMap;
+    std::unordered_map<uint16_t, std::function<void()>> m_commandMap;
     //
     // Command handling functions
     void registerUser();

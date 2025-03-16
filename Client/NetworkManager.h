@@ -13,6 +13,7 @@ class NetworkManager
     //
     bool readExact(void* buffer, size_t size);
     bool writeExact(const void* buffer, size_t size);
+    void printConnectionError();
 
 public:
     NetworkManager();

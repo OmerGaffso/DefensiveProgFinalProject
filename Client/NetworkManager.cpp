@@ -5,7 +5,11 @@ NetworkManager::NetworkManager()
 //
 NetworkManager::~NetworkManager()
 {
-    disconnect();
+    if (m_connected)
+    {
+        std::cout << "Closing connection on exit.\n";
+        disconnect();
+    }
 }
 //
 bool NetworkManager::ConnectToServer(const std::string& ip, uint16_t port)
@@ -27,46 +31,67 @@ bool NetworkManager::ConnectToServer(const std::string& ip, uint16_t port)
 //
 bool NetworkManager::sendPacket(const ClientPacket& packet)
 {
+    bool res = true;
     if (!m_connected)
-        return false;
+    {
+        printConnectionError();
+        res = false;
+    }
     //
     try
     {
         std::vector<uint8_t> data = packet.serialize();
-        return writeExact(data.data(), data.size());
+        if (!writeExact(data.data(), data.size()))
+        {
+            std::cerr << "Error: Failed to send packet. Connection may be close.\n";
+            res = false;
+        }
+        return res;
     }
     catch (const std::exception& e)
     {
         std::cerr << "Send error: " << e.what() << std::endl;
-        return false;
+        res = false;
+        return res;
     }
 }
 //
 bool NetworkManager::receivePacket(ServerPacket& packet)
 {
+    bool res = true;
     if (!m_connected)
-        return false;
+    {
+        printConnectionError();
+        res = false;
+    }
     //
     try
     {
         std::vector<uint8_t> buffer(SERVER_HEADER_SIZE);
         if (!readExact(buffer.data(), SERVER_HEADER_SIZE))
-            return false;
+        {
+            std::cerr << "Warning: Failed to receive packet header.\n";
+            res = false;
+        }
         //
         uint32_t payloadSize;
         std::memcpy(&payloadSize, buffer.data() + SERVER_PAYLOAD_SIZE_OFFSET, sizeof(payloadSize));
         //
         buffer.resize(SERVER_HEADER_SIZE + payloadSize);
         if (!readExact(buffer.data() + SERVER_HEADER_SIZE, payloadSize))
-            return false;
+        {
+            std::cerr << "Warning: Incomplete packet received. Skipping...\n";
+            res = false;
+        }
         //
         packet = ServerPacket::deserialize(buffer);
-        return true;
+        return res;
     }
     catch (const std::exception& e)
     {
-        std::cerr << "Recieve error: " << e.what() << std::endl;
-        return false;
+        std::cerr << "Error: Packet processing failed: " << e.what() << std::endl;
+        res = false;
+        return res;
     }
 }
 //
@@ -87,9 +112,14 @@ bool NetworkManager::readExact(void* buffer, size_t size)
         boost::asio::read(m_socket, boost::asio::buffer(buffer, size));
         return true;
     }
-    catch (...)
+    catch (const boost::system::system_error& e)
     {
-        disconnect();
+        std::cerr << "Warning: Read failed: " << e.what() << "\n";
+        if (e.code() == boost::asio::error::eof || e.code() == boost::asio::error::connection_reset)
+        {
+            std::cerr << "Connection lost. Disconnecting...\n";
+            disconnect();
+        }
         return false;
     }
 }
@@ -101,10 +131,19 @@ bool NetworkManager::writeExact(const void* buffer, size_t size)
         boost::asio::write(m_socket, boost::asio::buffer(buffer, size));
         return true;
     }
-    catch (...)
+    catch (const boost::system::system_error& e)
     {
-        disconnect();
+        std::cerr << "Warning: Write failed: " << e.what() << "\n";
+        if (e.code() == boost::asio::error::eof || e.code() == boost::asio::error::connection_reset)
+        {
+            std::cerr << "Connection lost. Disconnecting...\n";
+            disconnect();
+        }
         return false;
     }
 }
 //
+void NetworkManager::printConnectionError()
+{
+    std::cerr << "Error: Not connected to server.\n";
+}

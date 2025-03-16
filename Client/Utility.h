@@ -70,3 +70,8 @@ inline bool isValidUsername(const std::string& username)
 {
     return username.empty() || username.length() > USERNAME_MAX_LENGTH;
 }
+
+struct ArrayHasher
+{
+    std::size_t operator()(const std::array<uint8_t, CLIENT_ID_LENGTH>& arr) const;
+};

@@ -22,6 +22,20 @@ std::optional<std::array<uint8_t, CLIENT_ID_LENGTH>> ClientListManager::getClien
     return std::nullopt;
 }
 //
+
+std::optional<std::string> ClientListManager::getPublicKey(const std::array<uint8_t, CLIENT_ID_LENGTH>& clientId) const
+{
+    auto it = publicKeyMap.find(clientId);
+    if (it != publicKeyMap.end())
+        return it->second;
+    return std::nullopt;
+}
+//
+void ClientListManager::storePublicKey(const std::array<uint8_t, CLIENT_ID_LENGTH>& clientId, const std::string& publicKey)
+{
+    publicKeyMap[clientId] = publicKey;
+}
+//
 void ClientListManager::pritnClientList() const
 {
     if (clientMap.empty())

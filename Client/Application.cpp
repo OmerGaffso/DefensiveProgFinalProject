@@ -221,8 +221,44 @@ void Application::requestPublicKey()
     try
     {
         std::string targetUsername = m_ui->getTargetUsername();
-        // TODO - add logic
         m_ui->displayMessage("Requesting public key for: " + targetUsername);
+        //
+        // Look up the client ID for the target username
+        auto targetClientIdOpt = m_clientList.getClientId(targetUsername);
+        if (!targetClientIdOpt)
+        {
+            m_ui->displayError("User " + targetUsername + " not found in the client list");
+            return;
+        }
+        std::array<uint8_t, CLIENT_ID_LENGTH> targetClientId = targetClientIdOpt.value();
+        //
+        std::vector<uint8_t> payload(targetClientId.begin(), targetClientId.end());
+        ClientPacket packet(CODE_REQ_USER_PUBLIC_KEY, payload, m_client.getClientId());
+        //
+        if (!m_network->sendPacket(packet))
+        {
+            m_ui->displayError("Failed to send public key request.");
+            return;
+        }
+        //
+        ServerPacket resp;
+        if (!m_network->receivePacket(resp))
+        {
+            m_ui->displayError("No reponse from server.");
+            return;
+        }
+        if (resp.getCode() != RESP_CODE_GET_PUBLIC_KEY)
+        {
+            m_ui->displayError("Failed to retrieve public key.");
+            return;
+        }
+        //
+        std::string publicKeyBase64(resp.getPayload().begin() + CLIENT_ID_LENGTH, resp.getPayload().end());
+        //
+        m_clientList.storePublicKey(targetClientId, publicKeyBase64);
+        //
+        // Debug
+        m_ui->displayMessage("Public key for " + targetUsername + ":\n" + publicKeyBase64);
     }
     catch (const std::runtime_error& e)
     {

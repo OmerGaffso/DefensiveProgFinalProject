@@ -9,15 +9,18 @@ This class will
 #include "ConfigManager.h"
 #include "NetworkManager.h"
 #include "ClientInfo.h"
+#include "ClientListManager.h"
 
 class Application
 {
 private:
     std::unique_ptr<UI>                            m_ui;
-    bool                                           m_appRunning;
     std::unique_ptr<ConfigManager>                 m_config;
     std::unique_ptr<NetworkManager>                m_network;
-    ClientInfo m_client;
+    //
+    bool                                           m_appRunning;
+    ClientInfo                                     m_client;
+    ClientListManager                              m_clientList;
     //
     std::unordered_map<int, std::function<void()>> m_commandMap;
     //

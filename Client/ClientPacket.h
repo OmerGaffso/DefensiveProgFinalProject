@@ -10,7 +10,7 @@ struct ClientPacketHeader
     uint32_t payloadSize;
     //
     ClientPacketHeader();
-    ClientPacketHeader(uint16_t opCode, uint32_t size, std::array<uint8_t, CLIENT_ID_LENGTH>& id);
+    ClientPacketHeader(const uint16_t opCode, uint32_t size, std::array<uint8_t, CLIENT_ID_LENGTH>& id);
 };
 
 class ClientPacket
@@ -20,7 +20,8 @@ class ClientPacket
     //
 public:
     ClientPacket();
-    ClientPacket(uint16_t opCode, const std::vector<uint8_t>& data, std::array<uint8_t, CLIENT_ID_LENGTH>& id);
+    ClientPacket(const uint16_t opCode, std::array<uint8_t, CLIENT_ID_LENGTH>& id);
+    ClientPacket(const uint16_t opCode, const std::vector<uint8_t>& data, std::array<uint8_t, CLIENT_ID_LENGTH>& id);
     //
     std::vector<uint8_t> serialize() const;
 };

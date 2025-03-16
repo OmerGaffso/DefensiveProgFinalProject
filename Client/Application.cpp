@@ -143,8 +143,71 @@ void Application::registerUser()
 //
 void Application::requestClientList()
 {
-    m_ui->displayMessage("Requesting client list...\n");
-    // TODO- add logic here
+    try
+    {
+        m_ui->displayMessage("Requesting client list...\n");
+        //
+        // Create and send the client list request
+        ClientPacket request(CODE_REQ_USER_LIST, m_client.getClientId());
+        //
+        if (!m_network->sendPacket(request))
+        {
+            m_ui->displayError("Failed to send client list request.");
+            return;
+        }
+        //
+        ServerPacket response;
+        if (!m_network->receivePacket(response))
+        {
+            m_ui->displayError("No response from server.");
+            return;
+        }
+        //
+        // Check response code 
+        // TODO - Create a function in utility that get the expected code and the code, returns bool if match.
+        if (response.getCode() == RESP_CODE_GET_CLIENT_LIST)
+        {
+            std::vector<uint8_t> payload = response.getPayload();
+            if (payload.empty())
+            {
+                m_ui->displayMessage("No other clients found.");
+                return;
+            }
+            // DEBUG
+            uint32_t numOfClients = payload.size() / (CLIENT_ID_LENGTH + USERNAME_MAX_LENGTH);
+            m_ui->displayMessage("Number of clients recieved: " + numOfClients );
+            //
+            // Extract client IDs and usernames
+            std::vector<std::pair<std::string, std::array<uint8_t, CLIENT_ID_LENGTH>>> clients;
+            size_t offset = 0;
+            //
+            while (offset + CLIENT_ID_LENGTH + REGISTER_USERNAME_LEN <= payload.size())
+            {
+                // Extract client ID
+                std::array<uint8_t, CLIENT_ID_LENGTH> clientId;
+                std::memcpy(clientId.data(), &payload[offset], CLIENT_ID_LENGTH);
+                offset += CLIENT_ID_LENGTH;
+                //
+                // Extract username (trimming trailing null)
+                std::string username(reinterpret_cast<char*>(&payload[offset]), REGISTER_USERNAME_LEN);
+                username.erase(std::find(username.begin(), username.end(), '\0'), username.end());
+                offset += REGISTER_USERNAME_LEN;
+                //
+                clients.emplace_back(username, clientId);
+            }
+            //
+            // Update local client list
+            m_clientList.updateClientList(clients);
+            //
+            m_clientList.pritnClientList();
+        }
+        else
+            m_ui->displayError("Failed to retrieve client list.");
+    }
+    catch (const std::runtime_error& e)
+    {
+        m_ui->displayError(e.what());
+    }
 }
 //
 void Application::requestPublicKey()

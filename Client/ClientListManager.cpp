@@ -1,6 +1,11 @@
 #include "ClientListManager.h"
 #include <iostream>
 
+ClientListManager::ClientListManager()
+{
+    clientMap.clear();
+}
+
 void ClientListManager::updateClientList(const std::vector<std::pair<std::string, std::array<uint8_t, CLIENT_ID_LENGTH>>>& clients)
 {
     clientMap.clear();

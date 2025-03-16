@@ -148,7 +148,8 @@ void Application::requestClientList()
         m_ui->displayMessage("Requesting client list...\n");
         //
         // Create and send the client list request
-        ClientPacket request(CODE_REQ_USER_LIST, m_client.getClientId());
+        std::vector<uint8_t> emptyPayload;
+        ClientPacket request(CODE_REQ_USER_LIST, emptyPayload, m_client.getClientId());
         //
         if (!m_network->sendPacket(request))
         {

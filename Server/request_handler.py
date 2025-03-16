@@ -73,7 +73,7 @@ class RequestHandler:
     # Handles public key request.
     @staticmethod
     def handle_public_key_req(packet: RequestPacket, db: Database):
-        target_id = packet.payload[:CLIENT_ID_SIZE].decode()
+        target_id = packet.payload[:CLIENT_ID_SIZE]
         public_key = db.get_public_key(target_id)
         if public_key:
             return ResponsePacket(CODE_PUBLIC_KEY_RESPONSE, target_id + public_key)

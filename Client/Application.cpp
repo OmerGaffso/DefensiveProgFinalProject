@@ -180,7 +180,7 @@ void Application::requestClientList()
                 return;
             }
             // DEBUG
-            uint32_t numOfClients = payload.size() / (CLIENT_ID_LENGTH + USERNAME_MAX_LENGTH);
+            size_t numOfClients = payload.size() / (CLIENT_ID_LENGTH + USERNAME_MAX_LENGTH);
             m_ui->displayMessage("Number of clients recieved: " + numOfClients );
             //
             // Extract client IDs and usernames
@@ -253,7 +253,11 @@ void Application::requestPublicKey()
             return;
         }
         //
-        std::string publicKeyBase64(resp.getPayload().begin() + CLIENT_ID_LENGTH, resp.getPayload().end());
+        payload = resp.getPayload();
+        if (payload.size() < CLIENT_ID_LENGTH)
+            throw std::runtime_error("Error: Response payload too short to extract public key.");
+        //
+        std::string publicKeyBase64(payload.begin() + CLIENT_ID_LENGTH, payload.end());
         //
         m_clientList.storePublicKey(targetClientId, publicKeyBase64);
         //

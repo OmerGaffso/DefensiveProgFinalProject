@@ -73,26 +73,33 @@ void Application::registerUser()
         }
         //
         std ::string username = m_ui->getUsername();
-        std::vector<uint8_t> usernameData(username.begin(), username.end());
+        //std::vector<uint8_t> usernameData(username.begin(), username.end());
         //
         // Generate keys
         RSAPrivateWrapper privateKey;
-        std::string privateKeyBase64 = Base64Wrapper::encode(privateKey.getPrivateKey());
-        std::string publicKeyBase64 = Base64Wrapper::encode(privateKey.getPublicKey());
+        std::string privateKeyStr = privateKey.getPrivateKey(); // Get the raw private key
+        std::string publicKeyStr = privateKey.getPublicKey();   // Get the corresponding public key 
         //
+        // Encode keys 
+        std::string privateKeyBase64 = Base64Wrapper::encode(privateKeyStr);
+        std::string publicKeyBase64 = Base64Wrapper::encode(publicKeyStr);
+        //
+        // Ensure the public key is exactly 160 bytes
         if (publicKeyBase64.size() > REGISTER_PUBLIC_KEY_LEN)
             publicKeyBase64 = publicKeyBase64.substr(0, REGISTER_PUBLIC_KEY_LEN);
         else
             publicKeyBase64.append(REGISTER_PUBLIC_KEY_LEN - publicKeyBase64.size(), '\0');
         //
+        // Prepare payload: username (255 bytes) and public key (160 bytes).
         std::vector<uint8_t> payload;
         payload.insert(payload.end(), username.begin(), username.end());
         payload.resize(REGISTER_USERNAME_LEN, '\0'); // ensure username size 255
         payload.insert(payload.end(), publicKeyBase64.begin(), publicKeyBase64.end());
         //
-        // Create the client packet
+        // Create default client id
         std::array<uint8_t, CLIENT_ID_LENGTH> emptyClientId = {};
         emptyClientId.fill(0);
+        //
         ClientPacket packet(CODE_REGISTER_USER, payload, emptyClientId);
         //
         if (!m_network->sendPacket(packet))
@@ -108,10 +115,13 @@ void Application::registerUser()
             return;
         }
         //
-        if (resp.header.code == RESP_CODE_REGISTER_SUCCCESS)         {
+        if (resp.getCode() == RESP_CODE_REGISTER_SUCCCESS) 
+        {
+            // Extract the client ID from the payload
             std::array<uint8_t, CLIENT_ID_LENGTH> clientId;
-            std::memcpy(clientId.data(), resp.payload.data(), CLIENT_ID_LENGTH);
+            std::memcpy(clientId.data(), resp.getPayload().data(), CLIENT_ID_LENGTH);
             //
+            // Store user info in memory and save to file
             m_client.setUsername(username);
             m_client.setClientId(clientId);
             m_client.setPrivateKey(privateKeyBase64);

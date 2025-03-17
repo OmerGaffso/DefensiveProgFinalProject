@@ -53,9 +53,24 @@ std::optional<std::string> ClientListManager::getUsername(const std::array<uint8
 {
     for (const auto& [username, id] : clientMap)
     {
-        if (id == clientId)
+        if (std::equal(id.begin(), id.end(), clientId.begin()))
             return username;
     }
     return std::nullopt;
 }
-
+//
+// Store symmetric key for specific client ID
+void ClientListManager::storeSymmetricKey(const std::array<uint8_t, CLIENT_ID_LENGTH>& clientId, const std::vector<uint8_t>& symmetricKey)
+{
+    m_symmetricKeys[clientId] = symmetricKey;
+}
+//
+// Retrieve symmetric key for specific client ID
+std::optional<std::vector<uint8_t>> ClientListManager::getSymmetricKey(const std::array<uint8_t, CLIENT_ID_LENGTH>& clientId) const
+{
+    auto it = m_symmetricKeys.find(clientId);
+    if (it != m_symmetricKeys.end())
+        return it->second;
+    //
+    return std::nullopt; // No key found
+}

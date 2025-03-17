@@ -4,6 +4,7 @@
 #include "ClientPacket.h"
 #include "RSAWrapper.h"
 #include "Base64Wrapper.h"
+#include "AESWrapper.h"
 
 static bool                 isRegistered = false;
 static std::vector<uint8_t> emptyPayload;
@@ -450,7 +451,71 @@ void Application::sendTextMessage()
 //
 void Application::sendSymmetricKey()
 {
-
+    try
+    {
+        // get recipient username
+        std::string recipientUsername = m_ui->getTargetUsername();
+        //
+        // Get recipient client ID
+        std::optional<std::array<uint8_t, CLIENT_ID_LENGTH>> recipientIdOpt = m_clientList.getClientId(recipientUsername);
+        if (!recipientIdOpt)
+        {
+            m_ui->displayError("Recipient not found in client list.");
+            return;
+        }
+        std::array<uint8_t, CLIENT_ID_LENGTH> recipientId = recipientIdOpt.value();
+        //
+        // Get recipient public key
+        std::optional<std::string>recipientPublicKeyBase64 = m_clientList.getPublicKey(recipientId);
+        if (!recipientPublicKeyBase64)
+        {
+            m_ui->displayError("Recipient's public key is not stored. Please request it from the server.");
+            return;
+        }
+        //
+        // Generate a new AES symmetric key
+        AESWrapper aes;
+        std::string symmetricKey = std::string(reinterpret_cast<const char*>(aes.getKey()), AESWrapper::DEFAULT_KEYLENGTH);
+        //
+        // Encrypt symmetric key using recipient's public key
+        RSAPublicWrapper recipientPublicKey(Base64Wrapper::decode(recipientPublicKeyBase64.value()));
+        std::string encryptedSymmetricKey = recipientPublicKey.encrypt(symmetricKey);
+        //
+        // Create payload (target client ID + message type + encrypted key)
+        std::vector<uint8_t> payload;
+        payload.insert(payload.end(), recipientId.begin(), recipientId.end());
+        payload.push_back(MSG_TYPE_SYMM_KEY_RESP);
+        uint32_t contentSize = htonl(encryptedSymmetricKey.size());
+        payload.insert(payload.end(), reinterpret_cast<uint8_t*>(&contentSize),
+            reinterpret_cast<uint8_t*>(&contentSize) + sizeof(contentSize));
+        payload.insert(payload.end(), encryptedSymmetricKey.begin(), encryptedSymmetricKey.end());
+        //
+        // Send the packet to server
+        ClientPacket packet(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId());
+        //
+        if (!m_network->sendPacket(packet))
+        {
+            m_ui->displayError("Failed to send symmetric key.");
+            return;
+        }
+        //
+        // Receive response from server
+        ServerPacket resp;
+        if (!m_network->receivePacket(resp) || resp.getCode() != RESP_CODE_SEND_MSG_SUCCESS)
+        {
+            m_ui->displayError("Server error: Symmetric key not sent.");
+            return;
+        }
+        //
+        // Convert key to vector and store the key in the client 
+        std::vector<uint8_t> symmetricKeyVector(symmetricKey.begin(), symmetricKey.end());
+        m_clientList.storeSymmetricKey(recipientId, symmetricKeyVector);
+        m_ui->displayMessage("Symmetric key sent successfully.");
+    }
+    catch (const std::runtime_error& e)
+    {
+        m_ui->displayError(e.what());
+    }
 }
 //
 void Application::sendFile()

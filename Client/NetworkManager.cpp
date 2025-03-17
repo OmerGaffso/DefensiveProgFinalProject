@@ -7,8 +7,9 @@ NetworkManager::~NetworkManager()
 {
     if (m_connected)
     {
-        std::cout << "Closing connection on exit.\n";
-        disconnect();
+        /*disconnect();*/
+        std::cout << "Closing socket\n";
+        m_socket.close();
     }
 }
 //

@@ -5,7 +5,9 @@
 #include "RSAWrapper.h"
 #include "Base64Wrapper.h"
 
-static bool isRegistered = false;
+static bool                 isRegistered = false;
+static std::vector<uint8_t> emptyPayload;
+
 
 Application::Application() : m_appRunning(true)
 {
@@ -31,10 +33,7 @@ Application::Application() : m_appRunning(true)
 }
 //
 Application::~Application()
-{
-    m_network->disconnect();
-}
-
+{ }
 //
 void Application::run()
 {
@@ -153,7 +152,6 @@ void Application::requestClientList()
         m_ui->displayMessage("Requesting client list...\n");
         //
         // Create and send the client list request
-        std::vector<uint8_t> emptyPayload;
         ClientPacket request(CODE_REQ_USER_LIST, emptyPayload, m_client.getClientId());
         //
         if (!m_network->sendPacket(request))
@@ -278,7 +276,74 @@ void Application::requestPendingMessages()
 //
 void Application::requestSymmetricKey()
 {
+    try 
+    {
+        if (!isRegistered)
+        {
+            m_ui->displayError("You must be registered first.");
+            return;
+        }
+        //
+        // Get the recipient username
+        std::string recipientUsername = m_ui->getTargetUsername();
+        //
+        // Lookup recipient ID from the client list
+        auto recipientIdOpt = m_clientList.getClientId(recipientUsername);
+        if (!recipientIdOpt)
+        {
+            m_ui->displayError("User not found in client list.");
+            return;
+        }
+        //
+        std::array<uint8_t, CLIENT_ID_LENGTH> recipientId = recipientIdOpt.value();
+        //
+        // Create and send the request packet
+        std::vector<uint8_t> payload;
+        payload.insert(payload.end(), recipientId.begin(), recipientId.end()); // target client id
+        payload.push_back(MSG_TYPE_SYMM_KEY_REQ);
+        payload.insert(payload.end(), MESSAGE_CONTENT_LEN, 0); 
+        ClientPacket packet(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId());
+        //
+        if (!m_network->sendPacket(packet))
+        {
+            m_ui->displayError("Failed to send symmetric key request.");
+            return;
+        }
+        //
+        // DEBUG
+        m_ui->displayMessage("Symmetric key request sent to " + recipientUsername);
+        //
+        // Receive response from server
+        ServerPacket resp;
+        if (!m_network->receivePacket(resp))
+        {
+            m_ui->displayError("No response from server.");
+            return;
+        }
+        //
+        // Verify
+        if (resp.getCode() == RESP_CODE_SEND_MSG_SUCCESS)
+        {
+            if (resp.getPayload().size() < MSG_ID_LEN)
+            {
+                m_ui->displayError("Invalid response: missing message ID.");
+                return;
+            }
+            //
+            // Debug
+            uint32_t messageId;
+            std::memcpy(&messageId, resp.getPayload().data() + CLIENT_ID_LENGTH, sizeof(messageId));
+            messageId = ntohl(messageId);  // Convert from network byte order
 
+            m_ui->displayMessage("Symmetric key response received. Message ID: " + std::to_string(messageId));
+        }
+        else
+            m_ui->displayError("Server failed to process symmetric key request.");
+    }
+    catch (const std::runtime_error& e)
+    {
+        m_ui->displayError(e.what());
+    }
 }
 //
 void Application::sendTextMessage()

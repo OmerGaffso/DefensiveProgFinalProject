@@ -51,18 +51,19 @@ constexpr uint16_t RESP_CODE_GET_PENDING_MSGS  = 2104;
 constexpr uint16_t RESP_CODE_ERROR             = 9000;
 //
 // === Message Types ===
-constexpr uint8_t MSG_TYPE_PUBLIC_KEY_REQ      = 1;
-constexpr uint8_t MSG_TYPE_PUBLIC_KEY_RESP     = 2;
-constexpr uint8_t MSG_TYPE_SEND_TEXT_MSG       = 3;
-constexpr uint8_t MSG_TYPE_SEND_FILE           = 4;
+constexpr uint8_t MSG_TYPE_SYMM_KEY_REQ      = 1;
+constexpr uint8_t MSG_TYPE_SYMM_KEY_RESP     = 2;
+constexpr uint8_t MSG_TYPE_SEND_TEXT_MSG     = 3;
+constexpr uint8_t MSG_TYPE_SEND_FILE         = 4;
 // payload lengths:
 // register message:
-constexpr size_t REGISTER_USERNAME_LEN = 255;
+constexpr size_t REGISTER_USERNAME_LEN   = 255;
 constexpr size_t REGISTER_PUBLIC_KEY_LEN = 160;
-constexpr size_t REGISTER_PAYLOAD_LEN = REGISTER_USERNAME_LEN + REGISTER_PUBLIC_KEY_LEN;
+constexpr size_t REGISTER_PAYLOAD_LEN    = REGISTER_USERNAME_LEN + REGISTER_PUBLIC_KEY_LEN;
 // send message
-constexpr size_t MESSAGE_TYPE_LEN = 1;
+constexpr size_t MESSAGE_TYPE_LEN    = 1;
 constexpr size_t MESSAGE_CONTENT_LEN = 4;
+constexpr uint8_t MSG_ID_LEN         = 4;
 
 constexpr uint8_t USERNAME_MAX_LENGTH = 254; // leaving place for null termination. 
 

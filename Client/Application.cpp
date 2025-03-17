@@ -325,8 +325,8 @@ void Application::requestPendingMessages()
             pos += messageSize;
             //
             // Lookup sender username
-            std::optional<std::string> senderUsername = m_clientList.getClientId(senderId);
-            std::string sender = senderUsername ? *senderUsername : Utility::toHex(senderId);
+            std::optional<std::string> senderUsername = m_clientList.getUsername(senderId);
+            std::string sender = senderUsername ? *senderUsername : toHex(senderId);
             //
             // Process message types
             std::string content;
@@ -341,7 +341,7 @@ void Application::requestPendingMessages()
                     try
                     {
                         std::string decryptedMessage = m_client.decryptMessage(messageContent);
-                        content decryptedMessage;
+                        content = decryptedMessage;
                     }
                     catch (...)
                     {

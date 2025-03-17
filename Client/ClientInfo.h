@@ -24,6 +24,9 @@ public:
     // Save client info to file
     void saveToFile(const std::string& filePath) const; // maybe delete param
     //
+    bool hasSymmetricKey() const;
+    std::string decryptMessage(const std::vector<uint8_t>& encryptedMessage);
+    //
     // Getters:
     const std::string& getUsername() const { return m_username; };
     const std::array<uint8_t, CLIENT_ID_LENGTH>& getClientId() const { return m_clientId; };

@@ -20,5 +20,6 @@ public:
     std::optional<std::string> getPublicKey(const std::array<uint8_t, CLIENT_ID_LENGTH>& clientId) const;
     void storePublicKey(const std::array<uint8_t, CLIENT_ID_LENGTH>& clientId, const std::string& publicKey);
     void pritnClientList() const;
+    std::optional<std::string> getUsername(const std::array<uint8_t, CLIENT_ID_LENGTH>& clientId) const;
 };
 

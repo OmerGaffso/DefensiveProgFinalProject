@@ -48,3 +48,14 @@ void ClientListManager::pritnClientList() const
     for (const auto& client : clientMap)
         m_ui.displayMessage("- " + client.first);
 }
+//
+std::optional<std::string> ClientListManager::getUsername(const std::array<uint8_t, CLIENT_ID_LENGTH>& clientId) const
+{
+    for (const auto& [username, id] : clientMap)
+    {
+        if (id == clientId)
+            return username;
+    }
+    return std::nullopt;
+}
+

@@ -5,6 +5,8 @@
 #include <array>
 #include <vector>
 #include <cstdint>
+#include <sstream>
+#include <iomanip>
 
 #define MIN_PORT 1024
 #define MAX_PORT 65535
@@ -76,3 +78,5 @@ struct ArrayHasher
 {
     std::size_t operator()(const std::array<uint8_t, CLIENT_ID_LENGTH>& arr) const;
 };
+
+std::string toHex(const std::array<uint8_t, CLIENT_ID_LENGTH>& data);

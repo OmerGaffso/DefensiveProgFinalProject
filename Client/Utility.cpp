@@ -9,3 +9,12 @@ std::size_t ArrayHasher::operator()(const std::array<uint8_t, CLIENT_ID_LENGTH>&
         hash = hash * hashVal + byte;
         return hash;
 }
+//
+std::string toHex(const std::array<uint8_t, CLIENT_ID_LENGTH>& data)
+{
+    std::ostringstream oss;
+    for (uint8_t byte : data)
+        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+    return oss.str();
+}
+

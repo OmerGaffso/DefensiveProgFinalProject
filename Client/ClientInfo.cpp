@@ -1,4 +1,5 @@
 #include "ClientInfo.h"
+#include "AESWrapper.h"
 #include <fstream>
 #include <sstream>
 #include <iomanip>
@@ -48,4 +49,18 @@ void ClientInfo::saveToFile(const std::string& filePath) const
         << m_privateKeyBase64 << "\n";
     //
     file.close();
+}
+
+bool ClientInfo::hasSymmetricKey() const
+{
+    return !m_symmetricKey.empty();
+}
+//
+std::string ClientInfo::decryptMessage(const std::vector<uint8_t>& encryptedMessage)
+{
+    if (hasSymmetricKey)
+    {
+        AESWrapper aes(m_symmetricKey.data(), AESWrapper::DEFAULT_KEYLENGTH);
+        return aes.decrypt(reinterpret_cast<const char*>(encryptedMessage.data()), encryptedMessage.size());
+    }
 }

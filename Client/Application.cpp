@@ -270,8 +270,105 @@ void Application::requestPublicKey()
 //
 void Application::requestPendingMessages()
 {
-    m_ui->displayMessage("Requesting pending messages...\n");
-    // TODO- add logic here
+    try
+    {
+        m_ui->displayMessage("Requesting pending messages...\n");
+        //
+        ClientPacket packet(CODE_REQ_PENDING_MESSAGES, emptyPayload, m_client.getClientId());
+        //
+        // Send the request:
+        if (!m_network->sendPacket(packet))
+        {
+            m_ui->displayError("Failed to request pending messages.");
+            return;
+        }
+        //
+        // Receive server response
+        ServerPacket resp;
+        if (!m_network->receivePacket(resp) || resp.getCode() != RESP_CODE_GET_PENDING_MSGS)
+        {
+            m_ui->displayError("Server error: Failed to retrieve pending messages.");
+            return;
+        }
+        //
+        // Extract messages from payload
+        std::vector<uint8_t> payload = resp.getPayload();
+        size_t pos = 0;
+        //
+        while (pos < payload.size())
+        {
+            if (pos + CLIENT_ID_LENGTH + VERSION_LENGTH + CODE_LENGTH + PAYLOAD_SIZE_LENGTH > payload.size())
+                break; // Avoid accessing beyond payload
+            //
+            // Extract sender client id
+            std::array<uint8_t, CLIENT_ID_LENGTH> senderId;
+            std::memcpy(senderId.data(), payload.data() + pos, CLIENT_ID_LENGTH);
+            pos += CLIENT_ID_LENGTH;
+            //
+            // Extract message ID
+            uint32_t messageId;
+            std::memcpy(&messageId, payload.data() + pos, sizeof(MSG_ID_LEN));
+            messageId = ntohl(messageId);
+            pos += MSG_ID_LEN;
+            //
+            // Extract message type
+            uint8_t messageType = payload[pos++];
+            //
+            // Extract message content size
+            uint32_t messageSize;
+            std::memcpy(&messageSize, payload.data() + pos, sizeof(MESSAGE_CONTENT_LEN));
+            messageSize = ntohl(messageSize);
+            pos += MESSAGE_CONTENT_LEN;
+            //
+            // Extract message content
+            std::vector<uint8_t> messageContent(payload.begin() + pos, payload.begin() + pos + messageSize);
+            pos += messageSize;
+            //
+            // Lookup sender username
+            std::optional<std::string> senderUsername = m_clientList.getClientId(senderId);
+            std::string sender = senderUsername ? *senderUsername : Utility::toHex(senderId);
+            //
+            // Process message types
+            std::string content;
+            if (messageType == MSG_TYPE_SYMM_KEY_REQ)
+                content = "Request for symmetric key";
+            else if (messageType == MSG_TYPE_SYMM_KEY_RESP)
+                content = "Symmetric key received";
+            else if (messageType == MSG_TYPE_SEND_TEXT_MSG)
+            {
+                if (m_client.hasSymmetricKey())
+                {
+                    try
+                    {
+                        std::string decryptedMessage = m_client.decryptMessage(messageContent);
+                        content decryptedMessage;
+                    }
+                    catch (...)
+                    {
+                        content = "Can't decrypt message";
+                    }
+                }
+                else
+                    content = "Can't decrypt message";
+            }
+            else if (messageType == MSG_TYPE_SEND_FILE)
+            {
+                /* TODO - ADD IMPLEMENTATION HERE */
+            }
+            else
+                content = "Unknown message type";
+            //
+            // Print message
+            m_ui->displayMessage("From " + sender);
+            m_ui->displayMessage("Content:\n" + content);
+            m_ui->displayMessage("---<EOM>---\n");
+        }
+    }
+    catch (const std::runtime_error& e)
+    {
+        m_ui->displayError(e.what());
+        return;
+    }
 }
 //
 void Application::requestSymmetricKey()

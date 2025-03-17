@@ -447,7 +447,78 @@ void Application::requestSymmetricKey()
 //
 void Application::sendTextMessage()
 {
+    try
+    {
+        std::string recipientUsername = m_ui->getTargetUsername();
+        //
+        // Get recipient client ID
+        std::optional<std::array<uint8_t, CLIENT_ID_LENGTH>> recipientIdOpt = m_clientList.getClientId(recipientUsername);
+        if (!recipientIdOpt)
+        {
+            m_ui->displayError("Recipient not found in client list.");
+            return;
+        }
+        std::array<uint8_t, CLIENT_ID_LENGTH> recipientId = recipientIdOpt.value();
+        //
+        // Get symmetric key for recipient
+        std::optional<std::vector<uint8_t>> symmetricKeyOpt = m_clientList.getSymmetricKey(recipientId);
+        if (!symmetricKeyOpt)
+        {
+            m_ui->displayError("No symmetric key found for this recipient.");
+            return;
+        }
+        std::vector<uint8_t> symmetricKey = symmetricKeyOpt.value();
+        //
+        // Get message from user
+        std::string msg = m_ui->getMessasge();
+        if (msg.empty())
+        {
+            m_ui->displayError("Message cannot be empty.");
+            return;
+        }
+        //
+        // Encrypt message
+        AESWrapper aes(symmetricKey.data(), AESWrapper::DEFAULT_KEYLENGTH);
+        std::string encryptedMsg = aes.encrypt(msg.c_str(), msg.size());
+        //
+        // Prepare payload (recipient ID + message type + content size + content)
+        std::vector<uint8_t> payload;
+        payload.insert(payload.end(), recipientId.begin(), recipientId.end());
+        payload.push_back(MSG_TYPE_SEND_TEXT_MSG);
+        //
+        uint32_t contentSize = htonl(encryptedMsg.size());
+        payload.insert(payload.end(), reinterpret_cast<uint8_t*>(&contentSize),
+            reinterpret_cast<uint8_t*>(&contentSize) + MESSAGE_CONTENT_LEN);
+        payload.insert(payload.end(), encryptedMsg.begin(), encryptedMsg.end());
+        //
+        // Send packet to server
+        ClientPacket packet(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId());
+        //
+        if (!m_network->sendPacket(packet))
+        {
+            m_ui->displayError("Failed to send message.");
+            return;
+        }
+        //
+                // Receive response from server
+        ServerPacket resp;
+        if (!m_network->receivePacket(resp) || resp.getCode() != RESP_CODE_SEND_MSG_SUCCESS)
+        {
+            m_ui->displayError("Server error: Message not sent.");
+            return;
+        }
+        //
+        // DEBUG: Get message ID assigned by the server
+        int32_t messageId;
+        std::memcpy(&messageId, resp.getPayload().data(), sizeof(messageId));
+        messageId = ntohl(messageId);
 
+        m_ui->displayMessage("Message sent successfully. Message ID: " + std::to_string(messageId));
+    }
+    catch (const std::runtime_error& e)
+    {
+        m_ui->displayError(e.what());
+    }
 }
 //
 void Application::sendSymmetricKey()

@@ -55,7 +55,7 @@ constexpr uint16_t RESP_CODE_ERROR             = 9000;
 // === Message Types ===
 constexpr uint8_t MSG_TYPE_SYMM_KEY_REQ      = 1;
 constexpr uint8_t MSG_TYPE_SYMM_KEY_RESP     = 2;
-constexpr uint8_t MSG_TYPE_SEND_TEXT_MSG     = 3;
+constexpr uint8_t MSG_TYPE_TEXT_MSG          = 3;
 constexpr uint8_t MSG_TYPE_SEND_FILE         = 4;
 // payload lengths:
 // register message:

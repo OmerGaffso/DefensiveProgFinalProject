@@ -7,7 +7,7 @@
 #include <iomanip>
 #include <stdexcept>
 
-ClientInfo::ClientInfo() : m_clientId{}, m_symmetricKey{} {};
+ClientInfo::ClientInfo() : m_clientId{} {};
 
 bool ClientInfo::loadFromFile(const std::string& filePath)
 {
@@ -52,21 +52,7 @@ void ClientInfo::saveToFile(const std::string& filePath) const
     //
     file.close();
 }
-
-bool ClientInfo::hasSymmetricKey() const
-{
-    return !m_symmetricKey.empty();
-}
 //
-std::string ClientInfo::decryptMessage(const std::vector<uint8_t>& encryptedMessage)
-{
-    if (hasSymmetricKey)
-    {
-        AESWrapper aes(m_symmetricKey.data(), AESWrapper::DEFAULT_KEYLENGTH);
-        return aes.decrypt(reinterpret_cast<const char*>(encryptedMessage.data()), encryptedMessage.size());
-    }
-}
-
 std::string ClientInfo::decryptWithPrivateKey(const std::string& encryptedData)
 {
     RSAPrivateWrapper privateKey(Base64Wrapper::decode(m_privateKeyBase64));

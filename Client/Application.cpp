@@ -336,14 +336,16 @@ void Application::requestPendingMessages()
             else if (messageType == MSG_TYPE_SYMM_KEY_RESP)
                 //content = "Symmetric key received";
                 content = handleSymmetricKeyResponse(senderId, messageContent);
-            else if (messageType == MSG_TYPE_SEND_TEXT_MSG)
+            else if (messageType == MSG_TYPE_TEXT_MSG)
             {
-                if (m_client.hasSymmetricKey())
+                // Try to decrypt the message
+                std::optional<std::vector<uint8_t>> symmetricKeyOpt = m_clientList.getSymmetricKey(senderId);
+                if (symmetricKeyOpt)
                 {
                     try
                     {
-                        std::string decryptedMessage = m_client.decryptMessage(messageContent);
-                        content = decryptedMessage;
+                        AESWrapper aes(symmetricKeyOpt->data(), AESWrapper::DEFAULT_KEYLENGTH);
+                        content = aes.decrypt(reinterpret_cast<const char*>(messageContent.data()), messageContent.size());
                     }
                     catch (...)
                     {
@@ -484,7 +486,7 @@ void Application::sendTextMessage()
         // Prepare payload (recipient ID + message type + content size + content)
         std::vector<uint8_t> payload;
         payload.insert(payload.end(), recipientId.begin(), recipientId.end());
-        payload.push_back(MSG_TYPE_SEND_TEXT_MSG);
+        payload.push_back(MSG_TYPE_TEXT_MSG);
         //
         uint32_t contentSize = htonl(encryptedMsg.size());
         payload.insert(payload.end(), reinterpret_cast<uint8_t*>(&contentSize),
@@ -623,9 +625,16 @@ std::string Application::handleSymmetricKeyResponse(
 {
     try
     {
+        if (encryptedKey.empty())
+            return "Received empty symmetric key.";
+        //
         std::string encryptedSymmetricKey(encryptedKey.begin(), encryptedKey.end());
         //
         std::string decryptedKey = m_client.decryptWithPrivateKey(encryptedSymmetricKey);
+        //
+        // Ensure the key is of valid length
+        if (decryptedKey.size() != AESWrapper::DEFAULT_KEYLENGTH)
+            return "Decryption succeeded but key length is incorrect.";
         //
         // Convert key to vector and store it
         std::vector<uint8_t> symmetricKeyVector(decryptedKey.begin(), decryptedKey.end());

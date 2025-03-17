@@ -26,6 +26,7 @@ public:
     //
     bool hasSymmetricKey() const;
     std::string decryptMessage(const std::vector<uint8_t>& encryptedMessage);
+    std::string decryptWithPrivateKey(const std::string& encryptedData);
     //
     // Getters:
     const std::string& getUsername() const { return m_username; };

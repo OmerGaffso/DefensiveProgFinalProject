@@ -37,6 +37,8 @@ private:
     //
     void processUserInput(int choice);
     //
+    std::string handleSymmetricKeyResponse(const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId,
+        const std::vector<uint8_t>& encryptedKey);
 public:
     Application();
     ~Application();

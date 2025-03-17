@@ -334,7 +334,8 @@ void Application::requestPendingMessages()
             if (messageType == MSG_TYPE_SYMM_KEY_REQ)
                 content = "Request for symmetric key";
             else if (messageType == MSG_TYPE_SYMM_KEY_RESP)
-                content = "Symmetric key received";
+                //content = "Symmetric key received";
+                content = handleSymmetricKeyResponse(senderId, messageContent);
             else if (messageType == MSG_TYPE_SEND_TEXT_MSG)
             {
                 if (m_client.hasSymmetricKey())
@@ -543,4 +544,26 @@ void Application::processUserInput(int choice)
         it->second();
     else
         m_ui->displayError("Invalid option. Try again.\n");
+}
+
+std::string Application::handleSymmetricKeyResponse(
+    const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId,
+    const std::vector<uint8_t>& encryptedKey)
+{
+    try
+    {
+        std::string encryptedSymmetricKey(encryptedKey.begin(), encryptedKey.end());
+        //
+        std::string decryptedKey = m_client.decryptWithPrivateKey(encryptedSymmetricKey);
+        //
+        // Convert key to vector and store it
+        std::vector<uint8_t> symmetricKeyVector(decryptedKey.begin(), decryptedKey.end());
+        m_clientList.storeSymmetricKey(senderId, symmetricKeyVector);
+        //
+        return "Symmetric key received.";
+    }
+    catch (const std::exception& e)
+    {
+        return "Failed to decrypt symmetric key: " + std::string(e.what());
+    }
 }

@@ -1,5 +1,7 @@
 #include "ClientInfo.h"
 #include "AESWrapper.h"
+#include "RSAWrapper.h"
+#include "Base64Wrapper.h"
 #include <fstream>
 #include <sstream>
 #include <iomanip>
@@ -63,4 +65,10 @@ std::string ClientInfo::decryptMessage(const std::vector<uint8_t>& encryptedMess
         AESWrapper aes(m_symmetricKey.data(), AESWrapper::DEFAULT_KEYLENGTH);
         return aes.decrypt(reinterpret_cast<const char*>(encryptedMessage.data()), encryptedMessage.size());
     }
+}
+
+std::string ClientInfo::decryptWithPrivateKey(const std::string& encryptedData)
+{
+    RSAPrivateWrapper privateKey(Base64Wrapper::decode(m_privateKeyBase64));
+    return privateKey.decrypt(encryptedData);
 }

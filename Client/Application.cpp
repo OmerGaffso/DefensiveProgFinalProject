@@ -45,10 +45,10 @@ void Application::run()
         m_ui->displayError("Failed to load server info.\n");
         return;
     }
-    std::string serverIP   = serverInfo->first;
-    uint16_t    serverPort = serverInfo->second;
+    //std::string serverIP   = serverInfo->first;
+    //uint16_t    serverPort = serverInfo->second;
     //
-    if (!m_network->ConnectToServer(serverIP, serverPort))
+    if (!m_network->ConnectToServer(serverInfo->first, serverInfo->second))
     {
         m_ui->displayError("Failed to connect to the server.\n");
         return;
@@ -105,13 +105,8 @@ void Application::registerUser()
         std::array<uint8_t, CLIENT_ID_LENGTH> emptyClientId = {};
         emptyClientId.fill(0);
         //
-        ClientPacket packet(CODE_REGISTER_USER, payload, emptyClientId);
-        //
-        if (!m_network->sendPacket(packet))
-        {
-            m_ui->displayError("Failed to send registration request.");
+        if(!sendClientPacket(CODE_REGISTER_USER, payload, emptyClientId))
             return;
-        }
         //
         ServerPacket resp;
         if (!m_network->receivePacket(resp))
@@ -153,14 +148,8 @@ void Application::requestClientList()
     {
         m_ui->displayMessage("Requesting client list...\n");
         //
-        // Create and send the client list request
-        ClientPacket request(CODE_REQ_USER_LIST, emptyPayload, m_client.getClientId());
-        //
-        if (!m_network->sendPacket(request))
-        {
-            m_ui->displayError("Failed to send client list request.");
+        if (!sendClientPacket(CODE_REQ_USER_LIST, emptyPayload, m_client.getClientId()))
             return;
-        }
         //
         ServerPacket response;
         if (!m_network->receivePacket(response))
@@ -233,13 +222,8 @@ void Application::requestPublicKey()
         std::array<uint8_t, CLIENT_ID_LENGTH> targetClientId = targetClientIdOpt.value();
         //
         std::vector<uint8_t> payload(targetClientId.begin(), targetClientId.end());
-        ClientPacket packet(CODE_REQ_USER_PUBLIC_KEY, payload, m_client.getClientId());
-        //
-        if (!m_network->sendPacket(packet))
-        {
-            m_ui->displayError("Failed to send public key request.");
+        if (!sendClientPacket(CODE_REQ_USER_PUBLIC_KEY, payload, m_client.getClientId()))
             return;
-        }
         //
         ServerPacket resp;
         if (!m_network->receivePacket(resp))
@@ -276,14 +260,8 @@ void Application::requestPendingMessages()
     {
         m_ui->displayMessage("Requesting pending messages...\n");
         //
-        ClientPacket packet(CODE_REQ_PENDING_MESSAGES, emptyPayload, m_client.getClientId());
-        //
-        // Send the request:
-        if (!m_network->sendPacket(packet))
-        {
-            m_ui->displayError("Failed to request pending messages.");
+        if (!sendClientPacket(CODE_REQ_PENDING_MESSAGES, emptyPayload, m_client.getClientId()))
             return;
-        }
         //
         // Receive server response
         ServerPacket resp;
@@ -404,13 +382,8 @@ void Application::requestSymmetricKey()
         payload.insert(payload.end(), recipientId.begin(), recipientId.end()); // target client id
         payload.push_back(MSG_TYPE_SYMM_KEY_REQ);
         payload.insert(payload.end(), MESSAGE_CONTENT_LEN, 0); 
-        ClientPacket packet(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId());
-        //
-        if (!m_network->sendPacket(packet))
-        {
-            m_ui->displayError("Failed to send symmetric key request.");
+        if (!sendClientPacket(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId()))
             return;
-        }
         //
         // DEBUG
         m_ui->displayMessage("Symmetric key request sent to " + recipientUsername);
@@ -494,14 +467,8 @@ void Application::sendTextMessage()
             reinterpret_cast<uint8_t*>(&contentSize) + MESSAGE_CONTENT_LEN);
         payload.insert(payload.end(), encryptedMsg.begin(), encryptedMsg.end());
         //
-        // Send packet to server
-        ClientPacket packet(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId());
-        //
-        if (!m_network->sendPacket(packet))
-        {
-            m_ui->displayError("Failed to send message.");
+        if (!sendClientPacket(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId()))
             return;
-        }
         //
                 // Receive response from server
         ServerPacket resp;
@@ -565,14 +532,8 @@ void Application::sendSymmetricKey()
             reinterpret_cast<uint8_t*>(&contentSize) + sizeof(contentSize));
         payload.insert(payload.end(), encryptedSymmetricKey.begin(), encryptedSymmetricKey.end());
         //
-        // Send the packet to server
-        ClientPacket packet(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId());
-        //
-        if (!m_network->sendPacket(packet))
-        {
-            m_ui->displayError("Failed to send symmetric key.");
+        if (!sendClientPacket(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId()))
             return;
-        }
         //
         // Receive response from server
         ServerPacket resp;
@@ -655,12 +616,8 @@ void Application::sendFile()
             reinterpret_cast<uint8_t*>(&contentSize) + MESSAGE_CONTENT_LEN);
         payload.insert(payload.end(), encryptedFile.begin(), encryptedFile.end());
         //
-        ClientPacket packet(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId());
-        if (!m_network->sendPacket(packet))
-        {
-            m_ui->displayError("Failed to send file.");
+        if (!sendClientPacket(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId()))
             return;
-        }
         //
         ServerPacket resp;
         if (!m_network->receivePacket(resp) || resp.getCode() != RESP_CODE_SEND_MSG_SUCCESS)
@@ -769,6 +726,18 @@ std::string Application::handleIncomingFile(const std::array<uint8_t, CLIENT_ID_
     {
         return "Error processing file: " + std::string(e.what());
     }
+}
+//
+bool Application::sendClientPacket(uint16_t code, const std::vector<uint8_t>& payload, const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId)
+{
+    ClientPacket packet(code, payload, senderId);
+    //
+    if (!m_network->sendPacket(packet))
+    {
+        m_ui->displayError("Failed to send packet with code: " + std::to_string(code));
+        return false;
+    }
+    return true;
 }
 //
 // Helper function that returns the temporary file path

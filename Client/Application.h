@@ -39,6 +39,12 @@ private:
     //
     std::string handleSymmetricKeyResponse(const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId,
         const std::vector<uint8_t>& encryptedKey);
+    std::string handleIncomingFile(const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId,
+        const std::vector<uint8_t>& encryptedFile);
+    //
+    //
+    std::string getTempDirectory();
+
 public:
     Application();
     ~Application();

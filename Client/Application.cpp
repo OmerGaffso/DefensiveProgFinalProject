@@ -5,6 +5,7 @@
 #include "RSAWrapper.h"
 #include "Base64Wrapper.h"
 #include "AESWrapper.h"
+#include <ctime>
 
 static bool                 isRegistered = false;
 static std::vector<uint8_t> emptyPayload;
@@ -357,7 +358,7 @@ void Application::requestPendingMessages()
             }
             else if (messageType == MSG_TYPE_SEND_FILE)
             {
-                /* TODO - ADD IMPLEMENTATION HERE */
+                content = handleIncomingFile(senderId, messageContent);
             }
             else
                 content = "Unknown message type";
@@ -726,4 +727,59 @@ std::string Application::handleSymmetricKeyResponse(
     {
         return "Failed to decrypt symmetric key: " + std::string(e.what());
     }
+}
+
+std::string Application::handleIncomingFile(const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId,
+    const std::vector<uint8_t>& encryptedFile)
+{
+    try
+    {
+        std::optional<std::vector<uint8_t>> symmetricKeyOpt = m_clientList.getSymmetricKey(senderId);
+        if (!symmetricKeyOpt)
+            return "No symmetric key available for this sender.";
+        //
+        std::vector<uint8_t> symmetricKey = symmetricKeyOpt.value();
+        //
+        AESWrapper aes(symmetricKey.data(), AESWrapper::DEFAULT_KEYLENGTH);
+        std::string decryptedFile = aes.decrypt(reinterpret_cast<const char*>(encryptedFile.data()), encryptedFile.size());
+        //
+        // Generate unique filename - recieved_<senderId>_<timestamp>
+        std::stringstream filenameStream;
+        filenameStream << "received_" << toHex(senderId) << "_";
+        // Get current timestamp
+        std::time_t now = std::time(nullptr);
+        std::tm* localTime = std::localtime(&now);
+        filenameStream << std::put_time(localTime, "%Y%m%d_%H%M%S") << ".bin";
+        //
+        std::string filePath = getTempDirectory() + filenameStream.str();
+        //
+        // Save the decrypted content to the file
+        std::ofstream outFile(filePath, std::ios::binary);
+        if (!outFile)
+            return "Failed to save decrypted file.";
+        //
+        outFile.write(decryptedFile.data(), decryptedFile.size());
+        outFile.close();
+        //
+        return filePath;
+        
+
+    }
+    catch (const std::exception& e)
+    {
+        return "Error processing file: " + std::string(e.what());
+    }
+}
+//
+// Helper function that returns the temporary file path
+std::string Application::getTempDirectory()
+{
+#ifdef _WIN32
+    const char* tempPath = std::getenv("TMP");
+    if (!tempPath)
+        tempPath = "C:\\Temp"; // Default tmp path
+    return std::string(tempPath) + "\\";
+#else
+    return "/tmp";
+#endif // _WIN32
 }

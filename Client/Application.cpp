@@ -594,7 +594,87 @@ void Application::sendSymmetricKey()
 //
 void Application::sendFile()
 {
-
+    try 
+    {
+        std::string recipientUsername = m_ui->getTargetUsername();
+        //
+        std::optional<std::array<uint8_t, CLIENT_ID_LENGTH>> recipientIdOpt = m_clientList.getClientId(recipientUsername);
+        if (!recipientIdOpt)
+        {
+            m_ui->displayError("Recipient not found in client list.");
+            return;
+        }
+        std::array<uint8_t, CLIENT_ID_LENGTH> recipientId = recipientIdOpt.value();
+        //
+        // verify symmetric key exists
+        std::optional<std::vector<uint8_t>> symmetricKeyOpt = m_clientList.getSymmetricKey(recipientId);
+        if (!symmetricKeyOpt)
+        {
+            m_ui->displayError("No symmetric key available for recipient. Request or exchange one first.");
+            return;
+        }
+        std::vector<uint8_t> symmetricKey = symmetricKeyOpt.value();
+        //
+        // Get file path
+        std::string filePath = m_ui->getFilePath();
+        std::ifstream file(filePath, std::ios::binary | std::ios::ate);
+        if (!file)
+        {
+            m_ui->displayError("File not found.");
+            return;
+        }
+        //
+        // Read file into buffer
+        std::streamsize fileSize = file.tellg();
+        if (fileSize <= 0)
+        {
+            m_ui->displayError("Error reading file.");
+            return;
+        }
+        file.seekg(0, std::ios::beg);
+        //
+        std::vector<uint8_t> fileData(fileSize);
+        if (!file.read(reinterpret_cast<char*>(fileData.data()), fileSize))
+        {
+            m_ui->displayError("Error reading file.");
+            return;
+        }
+        file.close();
+        //
+        // Encrypt file with symmetric key
+        AESWrapper aes(symmetricKey.data(), AESWrapper::DEFAULT_KEYLENGTH);
+        std::string encryptedFile = aes.encrypt(reinterpret_cast<const char*>(fileData.data()), fileData.size());
+        //
+        // Construct payload
+        std::vector<uint8_t> payload;
+        payload.insert(payload.end(), recipientId.begin(), recipientId.end());
+        payload.push_back(MSG_TYPE_SEND_FILE);
+        uint32_t contentSize = htonl(encryptedFile.size());
+        payload.insert(payload.end(), reinterpret_cast<uint8_t*>(&contentSize),
+            reinterpret_cast<uint8_t*>(&contentSize) + MESSAGE_CONTENT_LEN);
+        payload.insert(payload.end(), encryptedFile.begin(), encryptedFile.end());
+        //
+        ClientPacket packet(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId());
+        if (!m_network->sendPacket(packet))
+        {
+            m_ui->displayError("Failed to send file.");
+            return;
+        }
+        //
+        ServerPacket resp;
+        if (!m_network->receivePacket(resp) || resp.getCode() != RESP_CODE_SEND_MSG_SUCCESS)
+        {
+            m_ui->displayError("Server error: file not send.");
+            return;
+        }
+        //
+        // DEBUG SUCCESS FILE TRANSFER:
+        m_ui->displayMessage("File sent successfully.");
+    }
+    catch (const std::runtime_error& e)
+    {
+        m_ui->displayError(e.what());
+    }
 }
 //
 void Application::exitProgram()

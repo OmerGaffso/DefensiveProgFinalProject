@@ -20,13 +20,15 @@ class RequestHandler:
 
     # Determines the appropriate handler based on request code
     def handle_request(self, packet: RequestPacket, db: Database) -> tuple:
-        handler: Callable[[RequestPacket], Optional[ResponsePacket]] = self.handlers.get(
-            packet.code, self.handle_invalid_requests
-        )
+        # handler: Callable[[RequestPacket], Optional[ResponsePacket]] = self.handlers.get(
+        #     packet.code, self.handle_invalid_requests
+        # )
+        handler = self.handlers.get(packet.code, self.handle_invalid_requests)
+
         try:
             response = handler(packet, db)
 
-            if packet.code == CODE_PENDING_MESSAGES_RESPONSE:
+            if packet.code == CODE_PENDING_MESSAGES:
                 if not isinstance(response, tuple) or len(response) != 2:
                     raise ValueError("Pending messages handler must return a tuple (ResponsePacket, list)")
                 return response   # Tuple of (ResponsePacket, messages_ids)

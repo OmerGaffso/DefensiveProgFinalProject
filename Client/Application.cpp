@@ -273,6 +273,13 @@ void Application::requestPendingMessages()
         //
         // Extract messages from payload
         std::vector<uint8_t> payload = resp.getPayload();
+        //
+        if (payload.empty()) 
+        {
+            m_ui->displayMessage("No pending messages.");
+            return;
+        }
+        //
         size_t pos = 0;
         //
         while (pos < payload.size())
@@ -705,8 +712,9 @@ std::string Application::handleIncomingFile(const std::array<uint8_t, CLIENT_ID_
         filenameStream << "received_" << toHex(senderId) << "_";
         // Get current timestamp
         std::time_t now = std::time(nullptr);
-        std::tm* localTime = std::localtime(&now);
-        filenameStream << std::put_time(localTime, "%Y%m%d_%H%M%S") << ".bin";
+        std::tm localTime;
+        localtime_s(&localTime, &now);
+        filenameStream << std::put_time(&localTime, "%Y%m%d_%H%M%S") << ".bin";
         //
         std::string filePath = getTempDirectory() + filenameStream.str();
         //
@@ -744,10 +752,20 @@ bool Application::sendClientPacket(uint16_t code, const std::vector<uint8_t>& pa
 std::string Application::getTempDirectory()
 {
 #ifdef _WIN32
-    const char* tempPath = std::getenv("TMP");
-    if (!tempPath)
-        tempPath = "C:\\Temp"; // Default tmp path
-    return std::string(tempPath) + "\\";
+    char* tempPath = nullptr; 
+    size_t len = 0;
+    errno_t err = _dupenv_s(&tempPath, &len, "TMP");
+    std::string tempDirectory;
+    //
+    if (err != 0 || tempPath == nullptr)
+        tempDirectory = "C:\\Temp"; // Default tmp path
+    else
+    {
+        tempDirectory = std::string(tempPath);
+        free(tempPath); // free memory
+    }
+    //s
+    return tempDirectory + "\\";
 #else
     return "/tmp";
 #endif // _WIN32

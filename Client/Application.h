@@ -35,17 +35,29 @@ private:
     void sendFile();
     void exitProgram();
     //
+    void receiveAndHandleResponse(uint16_t expectedCode, std::function<void(std::vector<uint8_t>)> handler);
     bool sendClientPacket(uint16_t code, const std::vector<uint8_t>& payload, const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId);
     void processUserInput(int choice);
+    std::string processMessage(
+        const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId,
+        uint8_t messageType,
+        const std::vector<uint8_t>& messageContent);
     //
     std::string handleSymmetricKeyResponse(const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId,
         const std::vector<uint8_t>& encryptedKey);
     std::string handleIncomingFile(const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId,
         const std::vector<uint8_t>& encryptedFile);
+    std::string handleTextMessage(
+        const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId,
+        const std::vector<uint8_t>& encryptedMessage);
     //
     //
     static std::string getTempDirectory();
-
+    std::vector<uint8_t> constructMessagePayload(
+        const std::array<uint8_t, CLIENT_ID_LENGTH>& recipientId,
+        uint8_t messageType,
+        const std::vector<uint8_t>& messageContent);
+    //
 public:
     Application();
     ~Application();

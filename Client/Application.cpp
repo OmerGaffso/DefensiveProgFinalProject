@@ -6,11 +6,11 @@
 #include "Base64Wrapper.h"
 #include "AESWrapper.h"
 #include <ctime>
-
+//
 static bool                 isRegistered = false;
 static std::vector<uint8_t> emptyPayload;
-
-
+//
+//
 Application::Application() : m_appRunning(true)
 {
     std::cout << "Starting application:\n";
@@ -108,18 +108,17 @@ void Application::registerUser()
         if(!sendClientPacket(CODE_REGISTER_USER, payload, emptyClientId))
             return;
         //
-        ServerPacket resp;
-        if (!m_network->receivePacket(resp))
+        receiveAndHandleResponse(RESP_CODE_REGISTER_SUCCCESS, [this, username, privateKeyBase64, publicKeyBase64](std::vector<uint8_t> payload) 
         {
-            m_ui->displayError("No reponse from server.");
-            return;
-        }
-        //
-        if (resp.getCode() == RESP_CODE_REGISTER_SUCCCESS) 
-        {
-            // Extract the client ID from the payload
+            if (payload.size() < CLIENT_ID_LENGTH)
+            {
+                m_ui->displayError("Invalid response payload.");
+                return;
+            }
+            //
+            // Extract client ID from response payload
             std::array<uint8_t, CLIENT_ID_LENGTH> clientId;
-            std::memcpy(clientId.data(), resp.getPayload().data(), CLIENT_ID_LENGTH);
+            std::memcpy(clientId.data(), payload.data(), CLIENT_ID_LENGTH);
             //
             // Store user info in memory and save to file
             m_client.setUsername(username);
@@ -131,9 +130,7 @@ void Application::registerUser()
             //
             m_ui->displayMessage("Registration successful.");
             isRegistered = true;
-        }
-        else
-            m_ui->displayError("Registration failed.");
+        });
     }
     catch (const std::runtime_error& e)
     {
@@ -151,26 +148,13 @@ void Application::requestClientList()
         if (!sendClientPacket(CODE_REQ_USER_LIST, emptyPayload, m_client.getClientId()))
             return;
         //
-        ServerPacket response;
-        if (!m_network->receivePacket(response))
+        receiveAndHandleResponse(RESP_CODE_GET_CLIENT_LIST, [this](const std::vector<uint8_t>& payload) 
         {
-            m_ui->displayError("No response from server.");
-            return;
-        }
-        //
-        // Check response code 
-        // TODO - Create a function in utility that get the expected code and the code, returns bool if match.
-        if (response.getCode() == RESP_CODE_GET_CLIENT_LIST)
-        {
-            std::vector<uint8_t> payload = response.getPayload();
             if (payload.empty())
             {
                 m_ui->displayMessage("No other clients found.");
                 return;
             }
-            // DEBUG
-            size_t numOfClients = payload.size() / (CLIENT_ID_LENGTH + USERNAME_MAX_LENGTH);
-            m_ui->displayMessage("Number of clients recieved: " + numOfClients );
             //
             // Extract client IDs and usernames
             std::vector<std::pair<std::string, std::array<uint8_t, CLIENT_ID_LENGTH>>> clients;
@@ -183,21 +167,18 @@ void Application::requestClientList()
                 std::memcpy(clientId.data(), &payload[offset], CLIENT_ID_LENGTH);
                 offset += CLIENT_ID_LENGTH;
                 //
-                // Extract username (trimming trailing null)
-                std::string username(reinterpret_cast<char*>(&payload[offset]), REGISTER_USERNAME_LEN);
+                // Extract username (trimming trailing null characters)
+                std::string username(reinterpret_cast<const char*>(&payload[offset]), REGISTER_USERNAME_LEN);
                 username.erase(std::find(username.begin(), username.end(), '\0'), username.end());
                 offset += REGISTER_USERNAME_LEN;
                 //
                 clients.emplace_back(username, clientId);
             }
             //
-            // Update local client list
+            // Update local client list and print results
             m_clientList.updateClientList(clients);
-            //
             m_clientList.pritnClientList();
-        }
-        else
-            m_ui->displayError("Failed to retrieve client list.");
+        });
     }
     catch (const std::runtime_error& e)
     {
@@ -225,28 +206,23 @@ void Application::requestPublicKey()
         if (!sendClientPacket(CODE_REQ_USER_PUBLIC_KEY, payload, m_client.getClientId()))
             return;
         //
-        ServerPacket resp;
-        if (!m_network->receivePacket(resp))
+        receiveAndHandleResponse(RESP_CODE_GET_PUBLIC_KEY, [this, targetClientId, targetUsername](const std::vector<uint8_t>& payload) 
         {
-            m_ui->displayError("No reponse from server.");
-            return;
-        }
-        if (resp.getCode() != RESP_CODE_GET_PUBLIC_KEY)
-        {
-            m_ui->displayError("Failed to retrieve public key.");
-            return;
-        }
-        //
-        payload = resp.getPayload();
-        if (payload.size() < CLIENT_ID_LENGTH)
-            throw std::runtime_error("Error: Response payload too short to extract public key.");
-        //
-        std::string publicKeyBase64(payload.begin() + CLIENT_ID_LENGTH, payload.end());
-        //
-        m_clientList.storePublicKey(targetClientId, publicKeyBase64);
-        //
-        // Debug
-        m_ui->displayMessage("Public key for " + targetUsername + ":\n" + publicKeyBase64);
+            if (payload.size() < CLIENT_ID_LENGTH)
+            {
+                m_ui->displayError("Error: Response payload too short to extract public key.");
+                return;
+            }
+            //
+            // Extract public key from payload
+            std::string publicKeyBase64(payload.begin() + CLIENT_ID_LENGTH, payload.end());
+            //
+            // Store the retrieved public key
+            m_clientList.storePublicKey(targetClientId, publicKeyBase64);
+            //
+            // Debug output
+            m_ui->displayMessage("Public key for " + targetUsername + ":\n" + publicKeyBase64);
+        });
     }
     catch (const std::runtime_error& e)
     {
@@ -263,96 +239,57 @@ void Application::requestPendingMessages()
         if (!sendClientPacket(CODE_REQ_PENDING_MESSAGES, emptyPayload, m_client.getClientId()))
             return;
         //
-        // Receive server response
-        ServerPacket resp;
-        if (!m_network->receivePacket(resp) || resp.getCode() != RESP_CODE_GET_PENDING_MSGS)
+        receiveAndHandleResponse(RESP_CODE_GET_PENDING_MSGS, [this](const std::vector<uint8_t>& payload) 
         {
-            m_ui->displayError("Server error: Failed to retrieve pending messages.");
-            return;
-        }
-        //
-        // Extract messages from payload
-        std::vector<uint8_t> payload = resp.getPayload();
-        //
-        if (payload.empty()) 
-        {
-            m_ui->displayMessage("No pending messages.");
-            return;
-        }
-        //
-        size_t pos = 0;
-        //
-        while (pos < payload.size())
-        {
-            if (pos + CLIENT_ID_LENGTH + VERSION_LENGTH + CODE_LENGTH + PAYLOAD_SIZE_LENGTH > payload.size())
-                break; // Avoid accessing beyond payload
-            //
-            // Extract sender client id
-            std::array<uint8_t, CLIENT_ID_LENGTH> senderId;
-            std::memcpy(senderId.data(), payload.data() + pos, CLIENT_ID_LENGTH);
-            pos += CLIENT_ID_LENGTH;
-            //
-            // Extract message ID
-            uint32_t messageId;
-            std::memcpy(&messageId, payload.data() + pos, sizeof(MSG_ID_LEN));
-            messageId = ntohl(messageId);
-            pos += MSG_ID_LEN;
-            //
-            // Extract message type
-            uint8_t messageType = payload[pos++];
-            //
-            // Extract message content size
-            uint32_t messageSize;
-            std::memcpy(&messageSize, payload.data() + pos, sizeof(MESSAGE_CONTENT_LEN));
-            messageSize = ntohl(messageSize);
-            pos += MESSAGE_CONTENT_LEN;
-            //
-            // Extract message content
-            std::vector<uint8_t> messageContent(payload.begin() + pos, payload.begin() + pos + messageSize);
-            pos += messageSize;
-            //
-            // Lookup sender username
-            std::optional<std::string> senderUsername = m_clientList.getUsername(senderId);
-            std::string sender = senderUsername ? *senderUsername : toHex(senderId);
-            //
-            // Process message types
-            std::string content;
-            if (messageType == MSG_TYPE_SYMM_KEY_REQ)
-                content = "Request for symmetric key";
-            else if (messageType == MSG_TYPE_SYMM_KEY_RESP)
-                //content = "Symmetric key received";
-                content = handleSymmetricKeyResponse(senderId, messageContent);
-            else if (messageType == MSG_TYPE_TEXT_MSG)
+            if (payload.empty())
             {
-                // Try to decrypt the message
-                std::optional<std::vector<uint8_t>> symmetricKeyOpt = m_clientList.getSymmetricKey(senderId);
-                if (symmetricKeyOpt)
-                {
-                    try
-                    {
-                        AESWrapper aes(symmetricKeyOpt->data(), AESWrapper::DEFAULT_KEYLENGTH);
-                        content = aes.decrypt(reinterpret_cast<const char*>(messageContent.data()), messageContent.size());
-                    }
-                    catch (...)
-                    {
-                        content = "Can't decrypt message";
-                    }
-                }
-                else
-                    content = "Can't decrypt message";
+                m_ui->displayMessage("No pending messages.");
+                return;
             }
-            else if (messageType == MSG_TYPE_SEND_FILE)
-            {
-                content = handleIncomingFile(senderId, messageContent);
-            }
-            else
-                content = "Unknown message type";
             //
-            // Print message
-            m_ui->displayMessage("From " + sender);
-            m_ui->displayMessage("Content:\n" + content);
-            m_ui->displayMessage("---<EOM>---\n");
-        }
+            size_t pos = 0;
+            while (pos < payload.size())
+            {
+                if (pos + CLIENT_ID_LENGTH + MSG_ID_LEN + MESSAGE_TYPE_LEN + MESSAGE_CONTENT_LEN > payload.size())
+                    break; // Prevent out-of-bounds read
+                //
+                // Extract sender client ID
+                std::array<uint8_t, CLIENT_ID_LENGTH> senderId;
+                std::memcpy(senderId.data(), payload.data() + pos, CLIENT_ID_LENGTH);
+                pos += CLIENT_ID_LENGTH;
+                //
+                // Extract message ID
+                uint32_t messageId;
+                std::memcpy(&messageId, payload.data() + pos, MSG_ID_LEN);
+                messageId = ntohl(messageId);
+                pos += MSG_ID_LEN;
+                //
+                // Extract message type
+                uint8_t messageType = payload[pos++];
+                //
+                // Extract message content size
+                uint32_t messageSize;
+                std::memcpy(&messageSize, payload.data() + pos, MESSAGE_CONTENT_LEN);
+                messageSize = ntohl(messageSize);
+                pos += MESSAGE_CONTENT_LEN;
+                //
+                // Extract message content
+                std::vector<uint8_t> messageContent(payload.begin() + pos, payload.begin() + pos + messageSize);
+                pos += messageSize;
+                //
+                // Lookup sender username
+                std::optional<std::string> senderUsername = m_clientList.getUsername(senderId);
+                std::string sender = senderUsername ? *senderUsername : toHex(senderId);
+                //
+                // Process message content
+                std::string content = processMessage(senderId, messageType, messageContent);
+                //
+                // Display message
+                m_ui->displayMessage("From " + sender);
+                m_ui->displayMessage("Content:\n" + content);
+                m_ui->displayMessage("---<EOM>---\n");
+            }
+        });
     }
     catch (const std::runtime_error& e)
     {
@@ -371,10 +308,8 @@ void Application::requestSymmetricKey()
             return;
         }
         //
-        // Get the recipient username
+        // Get the recipient username and validate client ID
         std::string recipientUsername = m_ui->getTargetUsername();
-        //
-        // Lookup recipient ID from the client list
         auto recipientIdOpt = m_clientList.getClientId(recipientUsername);
         if (!recipientIdOpt)
         {
@@ -382,45 +317,34 @@ void Application::requestSymmetricKey()
             return;
         }
         //
-        std::array<uint8_t, CLIENT_ID_LENGTH> recipientId = recipientIdOpt.value();
-        //
         // Create and send the request packet
+        std::array<uint8_t, CLIENT_ID_LENGTH> recipientId = recipientIdOpt.value();
         std::vector<uint8_t> payload;
         payload.insert(payload.end(), recipientId.begin(), recipientId.end()); // target client id
         payload.push_back(MSG_TYPE_SYMM_KEY_REQ);
         payload.insert(payload.end(), MESSAGE_CONTENT_LEN, 0); 
+        //
         if (!sendClientPacket(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId()))
             return;
         //
         // DEBUG
         m_ui->displayMessage("Symmetric key request sent to " + recipientUsername);
         //
-        // Receive response from server
-        ServerPacket resp;
-        if (!m_network->receivePacket(resp))
+        receiveAndHandleResponse(RESP_CODE_SEND_MSG_SUCCESS, [this](std::vector<uint8_t> payload)
         {
-            m_ui->displayError("No response from server.");
-            return;
-        }
-        //
-        // Verify
-        if (resp.getCode() == RESP_CODE_SEND_MSG_SUCCESS)
-        {
-            if (resp.getPayload().size() < MSG_ID_LEN)
+            if (payload.size() < MSG_ID_LEN)
             {
                 m_ui->displayError("Invalid response: missing message ID.");
                 return;
             }
             //
-            // Debug
+            // Extract and print message ID
             uint32_t messageId;
-            std::memcpy(&messageId, resp.getPayload().data() + CLIENT_ID_LENGTH, sizeof(messageId));
+            std::memcpy(&messageId, payload.data() + CLIENT_ID_LENGTH, sizeof(messageId));
             messageId = ntohl(messageId);  // Convert from network byte order
-
+            //
             m_ui->displayMessage("Symmetric key response received. Message ID: " + std::to_string(messageId));
-        }
-        else
-            m_ui->displayError("Server failed to process symmetric key request.");
+        });
     }
     catch (const std::runtime_error& e)
     {
@@ -464,33 +388,28 @@ void Application::sendTextMessage()
         AESWrapper aes(symmetricKey.data(), AESWrapper::DEFAULT_KEYLENGTH);
         std::string encryptedMsg = aes.encrypt(msg.c_str(), msg.size());
         //
-        // Prepare payload (recipient ID + message type + content size + content)
-        std::vector<uint8_t> payload;
-        payload.insert(payload.end(), recipientId.begin(), recipientId.end());
-        payload.push_back(MSG_TYPE_TEXT_MSG);
-        //
-        uint32_t contentSize = htonl(encryptedMsg.size());
-        payload.insert(payload.end(), reinterpret_cast<uint8_t*>(&contentSize),
-            reinterpret_cast<uint8_t*>(&contentSize) + MESSAGE_CONTENT_LEN);
-        payload.insert(payload.end(), encryptedMsg.begin(), encryptedMsg.end());
+        // Prepare payload 
+        std::vector<uint8_t> payload = constructMessagePayload(recipientId, MSG_TYPE_TEXT_MSG,
+            std::vector<uint8_t>(encryptedMsg.begin(), encryptedMsg.end()));
         //
         if (!sendClientPacket(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId()))
             return;
         //
-                // Receive response from server
-        ServerPacket resp;
-        if (!m_network->receivePacket(resp) || resp.getCode() != RESP_CODE_SEND_MSG_SUCCESS)
+        receiveAndHandleResponse(RESP_CODE_SEND_MSG_SUCCESS, [this](std::vector<uint8_t> payload)
         {
-            m_ui->displayError("Server error: Message not sent.");
-            return;
-        }
-        //
-        // DEBUG: Get message ID assigned by the server
-        int32_t messageId;
-        std::memcpy(&messageId, resp.getPayload().data(), sizeof(messageId));
-        messageId = ntohl(messageId);
-
-        m_ui->displayMessage("Message sent successfully. Message ID: " + std::to_string(messageId));
+            if (payload.size() < MSG_ID_LEN)
+            {
+                m_ui->displayError("Invalid response: missing message ID.");
+                return;
+            }
+            //
+            // Extract message ID from response
+            uint32_t messageId;
+            std::memcpy(&messageId, payload.data(), sizeof(messageId));
+            messageId = ntohl(messageId);
+            //
+            m_ui->displayMessage("Message sent successfully. Message ID: " + std::to_string(messageId));
+        });
     }
     catch (const std::runtime_error& e)
     {
@@ -531,29 +450,21 @@ void Application::sendSymmetricKey()
         std::string encryptedSymmetricKey = recipientPublicKey.encrypt(symmetricKey);
         //
         // Create payload (target client ID + message type + encrypted key)
-        std::vector<uint8_t> payload;
-        payload.insert(payload.end(), recipientId.begin(), recipientId.end());
-        payload.push_back(MSG_TYPE_SYMM_KEY_RESP);
-        uint32_t contentSize = htonl(encryptedSymmetricKey.size());
-        payload.insert(payload.end(), reinterpret_cast<uint8_t*>(&contentSize),
-            reinterpret_cast<uint8_t*>(&contentSize) + sizeof(contentSize));
-        payload.insert(payload.end(), encryptedSymmetricKey.begin(), encryptedSymmetricKey.end());
+        std::vector<uint8_t> payload = constructMessagePayload(recipientId, MSG_TYPE_SYMM_KEY_RESP,
+            std::vector<uint8_t>(encryptedSymmetricKey.begin(), encryptedSymmetricKey.end()));
         //
         if (!sendClientPacket(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId()))
             return;
         //
         // Receive response from server
-        ServerPacket resp;
-        if (!m_network->receivePacket(resp) || resp.getCode() != RESP_CODE_SEND_MSG_SUCCESS)
+        receiveAndHandleResponse(RESP_CODE_SEND_MSG_SUCCESS, [this, recipientId, symmetricKey](std::vector<uint8_t> payload)
         {
-            m_ui->displayError("Server error: Symmetric key not sent.");
-            return;
-        }
-        //
-        // Convert key to vector and store the key in the client 
-        std::vector<uint8_t> symmetricKeyVector(symmetricKey.begin(), symmetricKey.end());
-        m_clientList.storeSymmetricKey(recipientId, symmetricKeyVector);
-        m_ui->displayMessage("Symmetric key sent successfully.");
+            // Convert key to vector and store in the client list
+            std::vector<uint8_t> symmetricKeyVector(symmetricKey.begin(), symmetricKey.end());
+            m_clientList.storeSymmetricKey(recipientId, symmetricKeyVector);
+            //
+            m_ui->displayMessage("Symmetric key sent successfully.");
+        });
     }
     catch (const std::runtime_error& e)
     {
@@ -615,26 +526,16 @@ void Application::sendFile()
         std::string encryptedFile = aes.encrypt(reinterpret_cast<const char*>(fileData.data()), fileData.size());
         //
         // Construct payload
-        std::vector<uint8_t> payload;
-        payload.insert(payload.end(), recipientId.begin(), recipientId.end());
-        payload.push_back(MSG_TYPE_SEND_FILE);
-        uint32_t contentSize = htonl(encryptedFile.size());
-        payload.insert(payload.end(), reinterpret_cast<uint8_t*>(&contentSize),
-            reinterpret_cast<uint8_t*>(&contentSize) + MESSAGE_CONTENT_LEN);
-        payload.insert(payload.end(), encryptedFile.begin(), encryptedFile.end());
+        std::vector<uint8_t> payload = constructMessagePayload(recipientId, MSG_TYPE_SEND_FILE,
+            std::vector<uint8_t>(encryptedFile.begin(), encryptedFile.end()));
         //
         if (!sendClientPacket(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId()))
             return;
         //
-        ServerPacket resp;
-        if (!m_network->receivePacket(resp) || resp.getCode() != RESP_CODE_SEND_MSG_SUCCESS)
+        receiveAndHandleResponse(RESP_CODE_SEND_MSG_SUCCESS, [&](std::vector<uint8_t> payload) 
         {
-            m_ui->displayError("Server error: file not send.");
-            return;
-        }
-        //
-        // DEBUG SUCCESS FILE TRANSFER:
-        m_ui->displayMessage("File sent successfully.");
+            m_ui->displayMessage("File sent successfully.");
+        });
     }
     catch (const std::runtime_error& e)
     {
@@ -736,6 +637,52 @@ std::string Application::handleIncomingFile(const std::array<uint8_t, CLIENT_ID_
     }
 }
 //
+std::string Application::handleTextMessage(
+    const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId,
+    const std::vector<uint8_t>& encryptedMessage)
+{
+    // Retrieve the symmetric key for the sender
+    std::optional<std::vector<uint8_t>> symmetricKeyOpt = m_clientList.getSymmetricKey(senderId);
+    if (!symmetricKeyOpt)
+        return "Can't decrypt message (No symmetric key)";
+
+    try
+    {
+        AESWrapper aes(symmetricKeyOpt->data(), AESWrapper::DEFAULT_KEYLENGTH);
+        return aes.decrypt(reinterpret_cast<const char*>(encryptedMessage.data()), encryptedMessage.size());
+    }
+    catch (...)
+    {
+        return "Can't decrypt message (Decryption failed)";
+    }
+}
+//
+void Application::receiveAndHandleResponse(uint16_t expectedCode, std::function<void(std::vector<uint8_t>)> handler)
+{
+    ServerPacket resp;
+    if (!m_network->receivePacket(resp))
+    {
+        m_ui->displayError("No response from server.");
+        return;
+    }
+    //
+    uint16_t receivedCode = resp.getCode();
+    //
+    if (receivedCode == RESP_CODE_ERROR)
+    {
+        m_ui->displayMessage("Server responded with an error.");
+        return;
+    }
+    //
+    if (receivedCode != expectedCode)
+    {
+        m_ui->displayError("Unexpected response code from server.");
+        return;
+    }
+    //
+    handler(resp.getPayload());  // Call handler with the response payload
+}
+//
 bool Application::sendClientPacket(uint16_t code, const std::vector<uint8_t>& payload, const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId)
 {
     ClientPacket packet(code, payload, senderId);
@@ -748,6 +695,30 @@ bool Application::sendClientPacket(uint16_t code, const std::vector<uint8_t>& pa
     return true;
 }
 //
+std::string Application::processMessage(
+    const std::array<uint8_t, CLIENT_ID_LENGTH>& senderId,
+    uint8_t messageType,
+    const std::vector<uint8_t>& messageContent)
+    {
+    switch (messageType)
+    {
+    case MSG_TYPE_SYMM_KEY_REQ:
+        return "Request for symmetric key";
+    //
+    case MSG_TYPE_SYMM_KEY_RESP:
+        return handleSymmetricKeyResponse(senderId, messageContent);
+    //
+    case MSG_TYPE_TEXT_MSG:
+        return handleTextMessage(senderId, messageContent);
+        //
+    case MSG_TYPE_SEND_FILE:
+        return handleIncomingFile(senderId, messageContent);
+    //
+    default:
+        return "Unknown message type";
+    }
+}
+// 
 // Helper function that returns the temporary file path
 std::string Application::getTempDirectory()
 {
@@ -769,4 +740,22 @@ std::string Application::getTempDirectory()
 #else
     return "/tmp";
 #endif // _WIN32
+}
+
+std::vector<uint8_t> Application::constructMessagePayload(
+    const std::array<uint8_t, CLIENT_ID_LENGTH>& recipientId,
+    uint8_t messageType,
+    const std::vector<uint8_t>& messageContent)
+{
+    std::vector<uint8_t> payload;
+    payload.insert(payload.end(), recipientId.begin(), recipientId.end());
+    payload.push_back(messageType);
+    //
+    uint32_t contentSize = htonl(messageContent.size());
+    payload.insert(payload.end(), reinterpret_cast<uint8_t*>(&contentSize),
+        reinterpret_cast<uint8_t*>(&contentSize) + sizeof(contentSize));
+    //
+    payload.insert(payload.end(), messageContent.begin(), messageContent.end());
+    //
+    return payload;
 }

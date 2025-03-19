@@ -48,14 +48,19 @@ class RequestHandler:
         username = packet.payload[:USERNAME_SIZE].decode('ascii').rstrip('\x00')
         public_key = packet.payload[USERNAME_SIZE:]
 
+        if len(public_key) != PUBLIC_KEY_SIZE:
+            logging.error(f"Invalid public key length: {len(public_key)} (Expected: {REGISTER_PUBLIC_KEY_LEN})")
+            return ResponsePacket(CODE_ERROR)
+
         if db.user_exists(username):
             logging.error(f"User: {username} already exist")
-            db.print_database()
+            # db.print_database()
             return ResponsePacket(CODE_ERROR)  # Error
 
         client_id = uuid.uuid4().bytes
         db.add_user(client_id, username, public_key)
         logging.info(f"User: {username} added with UID: {client_id.hex()} UID size: {len(client_id)}")
+        logging.info(f"Publickey: {public_key} (Length {len(public_key)})")
         db.print_database()
         return ResponsePacket(CODE_REGISTER_SUCCESS, client_id)
 
@@ -89,7 +94,7 @@ class RequestHandler:
         content_size = int.from_bytes(packet.payload[17:21], 'big')
         message_content = packet.payload[21:]  # TODO - Change magic numbers!
         message_id = db.save_message(target_id, packet.client_id, message_type, message_content)
-        db.print_database()
+        # db.print_database()
         return ResponsePacket(CODE_SEND_MESSAGE_RESPONSE, target_id + message_id.to_bytes(4, "big"))
 
     # Handles pending messages request.
@@ -109,14 +114,14 @@ class RequestHandler:
             for msg in messages
         ])
         db.delete_messages([msg[0] for msg in messages])
-        return ResponsePacket(CODE_PENDING_MESSAGES_RESPONSE, payload)
+        return ResponsePacket(CODE_PENDING_MESSAGES_RESPONSE, payload), [msg[0] for msg in messages]
 
     # Used for debug - will clean the database completely
     @staticmethod
     def debug_clear_database(packet: RequestPacket, db: Database):
         logging.warning("Debug: Clearing the database")
         db.clear_database()
-        db.print_database()
+        # db.print_database()
         return ResponsePacket(RESP_DB_CLEANED, b"Database cleared successfully")
 
     # Handles invalid requests.

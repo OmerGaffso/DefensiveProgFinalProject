@@ -39,31 +39,38 @@ Application::~Application()
 //
 void Application::run()
 {
-    auto serverInfo = m_config->getServerInfo();
-    if (!serverInfo)
+    try
     {
-        m_ui->displayError("Failed to load server info.\n");
-        return;
+        auto serverInfo = m_config->getServerInfo();
+        if (!serverInfo)
+        {
+            m_ui->displayError("Failed to load server info.\n");
+            return;
+        }
+        //
+        if (!m_network->ConnectToServer(serverInfo->first, serverInfo->second))
+        {
+            m_ui->displayError("Failed to connect to the server.\n");
+            return;
+        }
+        //
+        // Load client info and check if registered
+        isRegistered = m_client.loadFromFile(m_config->getConfigFilePath());
+        if (isRegistered)
+            m_ui->displayMessage("Client info loaded: " + m_client.getUsername());
+        //
+        while (m_appRunning)
+        {
+            m_ui->displayMenu();
+            int choice = m_ui->getUserInput();
+            processUserInput(choice);
+        }
     }
-    //std::string serverIP   = serverInfo->first;
-    //uint16_t    serverPort = serverInfo->second;
-    //
-    if (!m_network->ConnectToServer(serverInfo->first, serverInfo->second))
+    catch (const std::exception& e)
     {
-        m_ui->displayError("Failed to connect to the server.\n");
-        return;
-    }
-    //
-    // Load client info and check if registered
-    isRegistered = m_client.loadFromFile(m_config->getConfigFilePath());
-    if (isRegistered)
-        m_ui->displayMessage("Client info loaded: " + m_client.getUsername());
-    //
-    while (m_appRunning)
-    {
-        m_ui->displayMenu();
-        int choice = m_ui->getUserInput();
-        processUserInput(choice);
+        m_ui->displayError(std::string("Error: ") + e.what());
+        std::cout << "Press Enter to exit...";
+        std::cin.get();
     }
 }
 //
@@ -78,28 +85,30 @@ void Application::registerUser()
         }
         //
         std ::string username = m_ui->getUsername();
-        //std::vector<uint8_t> usernameData(username.begin(), username.end());
         //
         // Generate keys
         RSAPrivateWrapper privateKey;
         std::string privateKeyStr = privateKey.getPrivateKey(); // Get the raw private key
         std::string publicKeyStr = privateKey.getPublicKey();   // Get the corresponding public key 
         //
+        // Debug output: Print the raw public key
+        std::cout << "Raw Public Key (HEX): " << toHex(publicKeyStr) << std::endl;
+        std::cout << "Raw Public Key Length: " << publicKeyStr.size() << std::endl;
         // Encode keys 
         std::string privateKeyBase64 = Base64Wrapper::encode(privateKeyStr);
-        std::string publicKeyBase64 = Base64Wrapper::encode(publicKeyStr);
         //
-        // Ensure the public key is exactly 160 bytes
-        if (publicKeyBase64.size() > REGISTER_PUBLIC_KEY_LEN)
-            publicKeyBase64 = publicKeyBase64.substr(0, REGISTER_PUBLIC_KEY_LEN);
-        else
-            publicKeyBase64.append(REGISTER_PUBLIC_KEY_LEN - publicKeyBase64.size(), '\0');
+        // Ensure public key is exactly 160 bytes
+        if (publicKeyStr.size() != REGISTER_PUBLIC_KEY_LEN)
+        {
+            m_ui->displayError("Unexpected public key size: " + std::to_string(publicKeyStr.size()));
+            return;
+        }        
         //
         // Prepare payload: username (255 bytes) and public key (160 bytes).
         std::vector<uint8_t> payload;
         payload.insert(payload.end(), username.begin(), username.end());
         payload.resize(REGISTER_USERNAME_LEN, '\0'); // ensure username size 255
-        payload.insert(payload.end(), publicKeyBase64.begin(), publicKeyBase64.end());
+        payload.insert(payload.end(), publicKeyStr.begin(), publicKeyStr.end());
         //
         // Create default client id
         std::array<uint8_t, CLIENT_ID_LENGTH> emptyClientId = {};
@@ -108,7 +117,7 @@ void Application::registerUser()
         if(!sendClientPacket(CODE_REGISTER_USER, payload, emptyClientId))
             return;
         //
-        receiveAndHandleResponse(RESP_CODE_REGISTER_SUCCCESS, [this, username, privateKeyBase64, publicKeyBase64](std::vector<uint8_t> payload) 
+        receiveAndHandleResponse(RESP_CODE_REGISTER_SUCCCESS, [this, username, privateKeyBase64, publicKeyStr](std::vector<uint8_t> payload) 
         {
             if (payload.size() < CLIENT_ID_LENGTH)
             {
@@ -124,7 +133,7 @@ void Application::registerUser()
             m_client.setUsername(username);
             m_client.setClientId(clientId);
             m_client.setPrivateKey(privateKeyBase64);
-            m_client.setPublicKey(publicKeyBase64);
+            m_client.setPublicKey(publicKeyStr);
             //
             m_client.saveToFile(m_config->getConfigFilePath());
             //
@@ -215,13 +224,14 @@ void Application::requestPublicKey()
             }
             //
             // Extract public key from payload
-            std::string publicKeyBase64(payload.begin() + CLIENT_ID_LENGTH, payload.end());
+            std::string publicKeyStr(payload.begin() + CLIENT_ID_LENGTH, payload.end());
             //
             // Store the retrieved public key
-            m_clientList.storePublicKey(targetClientId, publicKeyBase64);
+            m_clientList.storePublicKey(targetClientId, publicKeyStr);
             //
             // Debug output
-            m_ui->displayMessage("Public key for " + targetUsername + ":\n" + publicKeyBase64);
+            m_ui->displayMessage("Public key for " + targetUsername + ":\n" + publicKeyStr +'\n');
+            m_ui->displayMessage("Received key size: " + std::to_string(publicKeyStr.size()));
         });
     }
     catch (const std::runtime_error& e)
@@ -421,10 +431,7 @@ void Application::sendSymmetricKey()
 {
     try
     {
-        // get recipient username
         std::string recipientUsername = m_ui->getTargetUsername();
-        //
-        // Get recipient client ID
         std::optional<std::array<uint8_t, CLIENT_ID_LENGTH>> recipientIdOpt = m_clientList.getClientId(recipientUsername);
         if (!recipientIdOpt)
         {
@@ -434,37 +441,56 @@ void Application::sendSymmetricKey()
         std::array<uint8_t, CLIENT_ID_LENGTH> recipientId = recipientIdOpt.value();
         //
         // Get recipient public key
-        std::optional<std::string>recipientPublicKeyBase64 = m_clientList.getPublicKey(recipientId);
-        if (!recipientPublicKeyBase64)
+        std::optional<std::string>recipientPublicKey = m_clientList.getPublicKey(recipientId);
+        if (!recipientPublicKey || recipientPublicKey->empty())
         {
             m_ui->displayError("Recipient's public key is not stored. Please request it from the server.");
             return;
         }
+        m_ui->displayMessage("Public key: " + toHex(recipientPublicKey.value()) + "\n");
         //
-        // Generate a new AES symmetric key
-        AESWrapper aes;
-        std::string symmetricKey = std::string(reinterpret_cast<const char*>(aes.getKey()), AESWrapper::DEFAULT_KEYLENGTH);
-        //
-        // Encrypt symmetric key using recipient's public key
-        RSAPublicWrapper recipientPublicKey(Base64Wrapper::decode(recipientPublicKeyBase64.value()));
-        std::string encryptedSymmetricKey = recipientPublicKey.encrypt(symmetricKey);
-        //
-        // Create payload (target client ID + message type + encrypted key)
-        std::vector<uint8_t> payload = constructMessagePayload(recipientId, MSG_TYPE_SYMM_KEY_RESP,
-            std::vector<uint8_t>(encryptedSymmetricKey.begin(), encryptedSymmetricKey.end()));
-        //
-        if (!sendClientPacket(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId()))
-            return;
-        //
-        // Receive response from server
-        receiveAndHandleResponse(RESP_CODE_SEND_MSG_SUCCESS, [this, recipientId, symmetricKey](std::vector<uint8_t> payload)
+        try
         {
-            // Convert key to vector and store in the client list
-            std::vector<uint8_t> symmetricKeyVector(symmetricKey.begin(), symmetricKey.end());
-            m_clientList.storeSymmetricKey(recipientId, symmetricKeyVector);
+            RSAPublicWrapper recipientRSAPublicKey(reinterpret_cast<const char*>(recipientPublicKey->data()), recipientPublicKey->size());
+            m_ui->displayMessage("Successfully created RSAPublicWrapper");
             //
-            m_ui->displayMessage("Symmetric key sent successfully.");
-        });
+            // DEBUG
+            std::cout << "Encrypting with Public Key (HEX): " << toHex(*recipientPublicKey) << std::endl;
+            std::cout << "Public Key Length: " << recipientPublicKey->size() << std::endl;
+            // Generate AES symmetric key
+            AESWrapper aes;
+            std::string symmetricKey = std::string(reinterpret_cast<const char*>(aes.getKey()), AESWrapper::DEFAULT_KEYLENGTH);
+            //
+            // Encrypt symmetric key using recipient's public key
+            std::string encryptedSymmetricKey = recipientRSAPublicKey.encrypt(symmetricKey);
+            //
+            // Debug: Print encrypted symmetric key
+            std::cout << "Encrypted Symmetric Key (HEX): " << toHex(encryptedSymmetricKey) << std::endl;
+            std::cout << "Encrypted Symmetric Key Length: " << encryptedSymmetricKey.size() << std::endl;
+
+            // 
+            // Create payload (target client ID + message type + encrypted key)
+            std::vector<uint8_t> payload = constructMessagePayload(recipientId, MSG_TYPE_SYMM_KEY_RESP,
+                std::vector<uint8_t>(encryptedSymmetricKey.begin(), encryptedSymmetricKey.end()));
+            //
+            if (!sendClientPacket(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId()))
+                return;
+            //
+            // Receive response from server
+            receiveAndHandleResponse(RESP_CODE_SEND_MSG_SUCCESS, [this, recipientId, symmetricKey](std::vector<uint8_t> payload)
+            {
+                // Convert key to vector and store in the client list
+                std::vector<uint8_t> symmetricKeyVector(symmetricKey.begin(), symmetricKey.end());
+                m_clientList.storeSymmetricKey(recipientId, symmetricKeyVector);
+                //
+                m_ui->displayMessage("Symmetric key sent successfully.");
+            });
+        }
+        catch (const std::exception& e)
+        {
+            m_ui->displayError("RSA public key creation failed: " + std::string(e.what()));
+            return;
+        }
     }
     catch (const std::runtime_error& e)
     {
@@ -575,6 +601,10 @@ std::string Application::handleSymmetricKeyResponse(
             return "Received empty symmetric key.";
         //
         std::string encryptedSymmetricKey(encryptedKey.begin(), encryptedKey.end());
+        //
+        // Debug
+        std::cout << "Received Encrypted Key (HEX): " << toHex(encryptedSymmetricKey) << std::endl;
+        std::cout << "Encrypted Key Length: " << encryptedSymmetricKey.size() << std::endl;
         //
         std::string decryptedKey = m_client.decryptWithPrivateKey(encryptedSymmetricKey);
         //

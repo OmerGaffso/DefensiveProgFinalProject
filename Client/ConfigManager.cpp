@@ -38,14 +38,14 @@ std::optional<std::pair < std::string, uint16_t >> ConfigManager::getServerInfo(
     std::string line;
     if (!std::getline(file, line))
     {
-        throw std::runtime_error("Error: " + m_serverConfigFile + " empty or invalid\n");
+        throw std::runtime_error(m_serverConfigFile + " empty or invalid\n");
         return std::nullopt;
     }
     //
     size_t colonPos = line.find(':');
     if (colonPos == std::string::npos)
     {
-        throw std::runtime_error("Error: Invalid server info format\n");
+        throw std::runtime_error("Invalid server info format\n");
         return std::nullopt;
     }
     //
@@ -54,12 +54,12 @@ std::optional<std::pair < std::string, uint16_t >> ConfigManager::getServerInfo(
     //
     if (!validateIPAdder(ip))
     {
-        throw std::runtime_error("Error: Invalid ip address format\n");
+        throw std::runtime_error("Invalid ip address format\n");
         return std::nullopt;
     }
     if (!validatePort(port))
     {
-        throw std::runtime_error("Error: Invalid port\n");
+        throw std::runtime_error("Invalid port\n");
         return std::nullopt;
     }
     //

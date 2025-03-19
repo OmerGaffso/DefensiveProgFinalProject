@@ -80,3 +80,5 @@ struct ArrayHasher
 };
 
 std::string toHex(const std::array<uint8_t, CLIENT_ID_LENGTH>& data);
+std::string toHex(const std::vector<uint8_t>& data);
+std::string toHex(const std::string& data);

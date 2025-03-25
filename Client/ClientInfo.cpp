@@ -60,10 +60,7 @@ void ClientInfo::saveToFile(const std::string& filePath) const
 //
 std::string ClientInfo::decryptWithPrivateKey(const std::string& encryptedData)
 {
-    std::cout << "Loading Private Key (Base64): " << m_privateKeyBase64 << std::endl;
     std::string rawPrivateKey = Base64Wrapper::decode(m_privateKeyBase64);
-    std::cout << "Private Key (HEX): " << toHex(rawPrivateKey) << std::endl;
-    std::cout << "Private Key Length: " << rawPrivateKey.size() << std::endl;
     RSAPrivateWrapper privateKey(rawPrivateKey);
     return privateKey.decrypt(encryptedData);
 }

@@ -26,12 +26,8 @@ std::optional<std::pair < std::string, uint16_t >> ConfigManager::getServerInfo(
 {
     std::ifstream file(m_serverConfigFile);
     if (!file.is_open())
-    {
         throw std::runtime_error("Failed to open file: " + m_serverConfigFile);
-        return std::nullopt;
-    }
-    // debug- print all file contents todo - delete later!
-    std::cout << file.rdbuf(); 
+    //
     file.clear();
     file.seekg(0, std::ios::beg);
     //
@@ -63,8 +59,6 @@ std::optional<std::pair < std::string, uint16_t >> ConfigManager::getServerInfo(
         return std::nullopt;
     }
     //
-    // TODO- DEBUG, DELETE PRINT
-    std::cout << "\nIP: " << ip << " PORT: " << port << std::endl;
     //
     return std::make_pair(ip, port);
 }
@@ -77,7 +71,6 @@ std::optional<std::tuple<std::string, std::string, std::string>> ConfigManager::
         std::cerr << ("Warning: " + m_userConfigFile + " not found. Assuming first-time registration.\n");
         return std::nullopt;
     }
-    std::cout << file.rdbuf(); // debug- print all file contents todo - delete later!
     //
     std::string username, uniqueId, privateKey;
     if (!std::getline(file, username) || !std::getline(file, uniqueId) || !std::getline(file, privateKey))

@@ -16,8 +16,13 @@ bool ClientInfo::loadFromFile(const std::string& filePath)
         return false;
     //
     std::string username, clientIdHex, privateKey;
-    if (!std::getline(file, username) || !std::getline(file, clientIdHex) || !std::getline(file, privateKey))
+    if (!std::getline(file, username) || !std::getline(file, clientIdHex))
         return false;
+    //
+    // Read rest of the file into privateKey
+    std::string line;
+    while (std::getline(file, line))
+        privateKey += line;
     //
     // Convert hex clientId to array
     std::array<uint8_t, CLIENT_ID_LENGTH> clientId;

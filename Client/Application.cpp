@@ -294,6 +294,9 @@ void Application::requestPendingMessages()
                 // Process message content
                 std::string content = processMessage(senderId, messageType, messageContent);
                 //
+                // OMER - DEBUGGING
+                std::cout << "Encrypted content received (HEX): " << toHex(messageContent) << std::endl;
+                std::cout << "Decrypted message: " << content << std::endl;
                 // Display message
                 m_ui->displayMessage("From " + sender);
                 m_ui->displayMessage("Content:\n" + content);
@@ -398,6 +401,9 @@ void Application::sendTextMessage()
         AESWrapper aes(symmetricKey.data(), AESWrapper::DEFAULT_KEYLENGTH);
         std::string encryptedMsg = aes.encrypt(msg.c_str(), msg.size());
         //
+        // OMER - Debugging:
+        std::cout << "Original plaintext: " << msg << std::endl;
+        std::cout << "Encrypted message (HEX): " << toHex(encryptedMsg) << std::endl;
         // Prepare payload 
         std::vector<uint8_t> payload = constructMessagePayload(recipientId, MSG_TYPE_TEXT_MSG,
             std::vector<uint8_t>(encryptedMsg.begin(), encryptedMsg.end()));
@@ -679,6 +685,7 @@ std::string Application::handleTextMessage(
     try
     {
         AESWrapper aes(symmetricKeyOpt->data(), AESWrapper::DEFAULT_KEYLENGTH);
+        //
         return aes.decrypt(reinterpret_cast<const char*>(encryptedMessage.data()), encryptedMessage.size());
     }
     catch (...)

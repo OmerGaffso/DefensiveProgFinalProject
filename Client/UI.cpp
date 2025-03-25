@@ -68,7 +68,11 @@ std::string UI::getMessasge()
 {
     std::cout << "Enter message: ";
     std::string message;
-    std::cin.ignore();
+    //
+    // Clear newline
+    if (std::cin.rdbuf()->in_avail() > 0)
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    //
     std::getline(std::cin, message);
     return message;
 }

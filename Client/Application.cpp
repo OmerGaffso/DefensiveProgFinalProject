@@ -13,8 +13,6 @@ static std::vector<uint8_t> emptyPayload;
 //
 Application::Application() : m_appRunning(true)
 {
-    std::cout << "Starting application:\n";
-    //
     m_ui      = std::make_unique<UI>();
     m_config  = std::make_unique<ConfigManager>();
     m_network = std::make_unique<NetworkManager>();
@@ -434,7 +432,6 @@ void Application::sendSymmetricKey()
         try
         {
             RSAPublicWrapper recipientRSAPublicKey(reinterpret_cast<const char*>(recipientPublicKey->data()), recipientPublicKey->size());
-            m_ui->displayMessage("Successfully created RSAPublicWrapper");
             //
             // Generate AES symmetric key
             AESWrapper aes;

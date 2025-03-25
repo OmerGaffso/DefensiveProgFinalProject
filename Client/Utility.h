@@ -10,8 +10,8 @@
 
 #define MIN_PORT 1024
 #define MAX_PORT 65535
-
-
+//
+//
 // === Protocol === 
 // Sizes
 constexpr size_t  CLIENT_ID_LENGTH = 16;
@@ -57,7 +57,8 @@ constexpr uint8_t MSG_TYPE_SYMM_KEY_REQ      = 1;
 constexpr uint8_t MSG_TYPE_SYMM_KEY_RESP     = 2;
 constexpr uint8_t MSG_TYPE_TEXT_MSG          = 3;
 constexpr uint8_t MSG_TYPE_SEND_FILE         = 4;
-// payload lengths:
+//
+// === Payload lengths ===
 // register message:
 constexpr size_t REGISTER_USERNAME_LEN   = 255;
 constexpr size_t REGISTER_PUBLIC_KEY_LEN = 160;
@@ -66,19 +67,36 @@ constexpr size_t REGISTER_PAYLOAD_LEN    = REGISTER_USERNAME_LEN + REGISTER_PUBL
 constexpr size_t MESSAGE_TYPE_LEN    = 1;
 constexpr size_t MESSAGE_CONTENT_LEN = 4;
 constexpr uint8_t MSG_ID_LEN         = 4;
-
+//
 constexpr uint8_t USERNAME_MAX_LENGTH = 254; // leaving place for null termination. 
-
-inline bool isValidUsername(const std::string& username)
+//
+/**
+ * Checks if a username is invalid (empty or greater than allowed length).
+ * @param username The username string to validate.
+ * @return True if invalid, false otherwise.
+ */
+inline bool invalidUsername(const std::string& username)
 {
     return username.empty() || username.length() > USERNAME_MAX_LENGTH;
 }
-
+//
+/**
+ * Hash function for std::array<uint8_t, 16>, used in unordered_map.
+ */
 struct ArrayHasher
 {
     std::size_t operator()(const std::array<uint8_t, CLIENT_ID_LENGTH>& arr) const;
 };
-
+//
+/**
+ * Converts a 16-byte client ID array to a hexadecimal string.
+ */
 std::string toHex(const std::array<uint8_t, CLIENT_ID_LENGTH>& data);
+/**
+ * Converts a byte vector to a hexadecimal string.
+ */
 std::string toHex(const std::vector<uint8_t>& data);
+/**
+ * Converts a raw string into its hexadecimal string representation.
+ */
 std::string toHex(const std::string& data);

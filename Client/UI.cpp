@@ -41,7 +41,7 @@ std::string UI::getTargetUsername()
     std::cout << "Enter target username: ";
     std::getline(std::cin >> std::ws, targetUsername);
     //
-    if (isValidUsername(targetUsername))
+    if (invalidUsername(targetUsername))
     {
         throw std::runtime_error("Invalid username format.\n");
         return "";
@@ -56,7 +56,7 @@ std::string UI::getUsername()
     std::string username;
     std::cin >> username;
     //
-    if (isValidUsername(username))
+    if (invalidUsername(username))
     {
         throw std::runtime_error("Invalid username format.\n");
         return "";

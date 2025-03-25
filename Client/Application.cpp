@@ -369,7 +369,7 @@ void Application::sendTextMessage()
         std::vector<uint8_t> symmetricKey = symmetricKeyOpt.value();
         //
         // Get message from user
-        std::string msg = m_ui->getMessasge();
+        std::string msg = m_ui->getMesssage();
         if (msg.empty())
         {
             m_ui->displayError("Message cannot be empty.");

@@ -64,7 +64,7 @@ std::string UI::getUsername()
     return username;
 }
 //
-std::string UI::getMessasge()
+std::string UI::getMesssage()
 {
     std::cout << "Enter message: ";
     std::string message;

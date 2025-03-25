@@ -90,9 +90,6 @@ void Application::registerUser()
         std::string privateKeyStr = privateKey.getPrivateKey(); // Get the raw private key
         std::string publicKeyStr = privateKey.getPublicKey();   // Get the corresponding public key 
         //
-        // Debug output: Print the raw public key
-        std::cout << "Raw Public Key (HEX): " << toHex(publicKeyStr) << std::endl;
-        std::cout << "Raw Public Key Length: " << publicKeyStr.size() << std::endl;
         // Encode keys 
         std::string privateKeyBase64 = Base64Wrapper::encode(privateKeyStr);
         //
@@ -151,8 +148,6 @@ void Application::requestClientList()
 {
     try
     {
-        m_ui->displayMessage("Requesting client list...\n");
-        //
         if (!sendClientPacket(CODE_REQ_USER_LIST, emptyPayload, m_client.getClientId()))
             return;
         //
@@ -199,7 +194,6 @@ void Application::requestPublicKey()
     try
     {
         std::string targetUsername = m_ui->getTargetUsername();
-        m_ui->displayMessage("Requesting public key for: " + targetUsername);
         //
         // Look up the client ID for the target username
         auto targetClientIdOpt = m_clientList.getClientId(targetUsername);
@@ -227,10 +221,6 @@ void Application::requestPublicKey()
             //
             // Store the retrieved public key
             m_clientList.storePublicKey(targetClientId, publicKeyStr);
-            //
-            // Debug output
-            m_ui->displayMessage("Public key for " + targetUsername + ":\n" + publicKeyStr +'\n');
-            m_ui->displayMessage("Received key size: " + std::to_string(publicKeyStr.size()));
         });
     }
     catch (const std::runtime_error& e)
@@ -243,8 +233,6 @@ void Application::requestPendingMessages()
 {
     try
     {
-        m_ui->displayMessage("Requesting pending messages...\n");
-        //
         if (!sendClientPacket(CODE_REQ_PENDING_MESSAGES, emptyPayload, m_client.getClientId()))
             return;
         //
@@ -293,9 +281,6 @@ void Application::requestPendingMessages()
                 // Process message content
                 std::string content = processMessage(senderId, messageType, messageContent);
                 //
-                // OMER - DEBUGGING
-                std::cout << "Encrypted content received (HEX): " << toHex(messageContent) << std::endl;
-                std::cout << "Decrypted message: " << content << std::endl;
                 // Display message
                 m_ui->displayMessage("From " + sender);
                 m_ui->displayMessage("Content:\n" + content);
@@ -338,9 +323,6 @@ void Application::requestSymmetricKey()
         //
         if (!sendClientPacket(CODE_SEND_MESSAGE_TO_USER, payload, m_client.getClientId()))
             return;
-        //
-        // DEBUG
-        m_ui->displayMessage("Symmetric key request sent to " + recipientUsername);
         //
         receiveAndHandleResponse(RESP_CODE_SEND_MSG_SUCCESS, [this](std::vector<uint8_t> payload)
         {
@@ -400,9 +382,6 @@ void Application::sendTextMessage()
         AESWrapper aes(symmetricKey.data(), AESWrapper::DEFAULT_KEYLENGTH);
         std::string encryptedMsg = aes.encrypt(msg.c_str(), msg.size());
         //
-        // OMER - Debugging:
-        std::cout << "Original plaintext: " << msg << std::endl;
-        std::cout << "Encrypted message (HEX): " << toHex(encryptedMsg) << std::endl;
         // Prepare payload 
         std::vector<uint8_t> payload = constructMessagePayload(recipientId, MSG_TYPE_TEXT_MSG,
             std::vector<uint8_t>(encryptedMsg.begin(), encryptedMsg.end()));
@@ -452,16 +431,11 @@ void Application::sendSymmetricKey()
             m_ui->displayError("Recipient's public key is not stored. Please request it from the server.");
             return;
         }
-        m_ui->displayMessage("Public key: " + toHex(recipientPublicKey.value()) + "\n");
-        //
         try
         {
             RSAPublicWrapper recipientRSAPublicKey(reinterpret_cast<const char*>(recipientPublicKey->data()), recipientPublicKey->size());
             m_ui->displayMessage("Successfully created RSAPublicWrapper");
             //
-            // DEBUG
-            std::cout << "Encrypting with Public Key (HEX): " << toHex(*recipientPublicKey) << std::endl;
-            std::cout << "Public Key Length: " << recipientPublicKey->size() << std::endl;
             // Generate AES symmetric key
             AESWrapper aes;
             std::string symmetricKey = std::string(reinterpret_cast<const char*>(aes.getKey()), AESWrapper::DEFAULT_KEYLENGTH);
@@ -469,11 +443,6 @@ void Application::sendSymmetricKey()
             // Encrypt symmetric key using recipient's public key
             std::string encryptedSymmetricKey = recipientRSAPublicKey.encrypt(symmetricKey);
             //
-            // Debug: Print encrypted symmetric key
-            std::cout << "Encrypted Symmetric Key (HEX): " << toHex(encryptedSymmetricKey) << std::endl;
-            std::cout << "Encrypted Symmetric Key Length: " << encryptedSymmetricKey.size() << std::endl;
-
-            // 
             // Create payload (target client ID + message type + encrypted key)
             std::vector<uint8_t> payload = constructMessagePayload(recipientId, MSG_TYPE_SYMM_KEY_RESP,
                 std::vector<uint8_t>(encryptedSymmetricKey.begin(), encryptedSymmetricKey.end()));
@@ -607,10 +576,6 @@ std::string Application::handleSymmetricKeyResponse(
         //
         std::string encryptedSymmetricKey(encryptedKey.begin(), encryptedKey.end());
         //
-        // Debug
-        std::cout << "Received Encrypted Key (HEX): " << toHex(encryptedSymmetricKey) << std::endl;
-        std::cout << "Encrypted Key Length: " << encryptedSymmetricKey.size() << std::endl;
-        //
         std::string decryptedKey = m_client.decryptWithPrivateKey(encryptedSymmetricKey);
         //
         // Ensure the key is of valid length
@@ -663,8 +628,6 @@ std::string Application::handleIncomingFile(const std::array<uint8_t, CLIENT_ID_
         outFile.close();
         //
         return filePath;
-        
-
     }
     catch (const std::exception& e)
     {
@@ -680,7 +643,7 @@ std::string Application::handleTextMessage(
     std::optional<std::vector<uint8_t>> symmetricKeyOpt = m_clientList.getSymmetricKey(senderId);
     if (!symmetricKeyOpt)
         return "Can't decrypt message (No symmetric key)";
-
+    //
     try
     {
         AESWrapper aes(symmetricKeyOpt->data(), AESWrapper::DEFAULT_KEYLENGTH);
@@ -777,7 +740,7 @@ std::string Application::getTempDirectory()
     return "/tmp";
 #endif // _WIN32
 }
-
+//
 std::vector<uint8_t> Application::constructMessagePayload(
     const std::array<uint8_t, CLIENT_ID_LENGTH>& recipientId,
     uint8_t messageType,

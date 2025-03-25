@@ -178,7 +178,7 @@ void Application::requestClientList()
             //
             // Update local client list and print results
             m_clientList.updateClientList(clients);
-            m_clientList.pritnClientList();
+            m_clientList.printClientList();
         });
     }
     catch (const std::runtime_error& e)

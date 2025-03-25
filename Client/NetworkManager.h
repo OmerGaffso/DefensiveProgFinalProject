@@ -1,3 +1,9 @@
+/**
+ * NetworkManager.h
+ * This class handles the TCP network communication between the client and the server.
+ * Uses Boost.Asio to manage connections, send and receive packets, and handle connection reliability.
+ */
+
 #pragma once
 #include "ClientPacket.h"
 #include "ServerPacket.h"
@@ -5,12 +11,6 @@
 #include <string>
 #include <iostream>
 
-/**
- * @class NetworkManager
- * @brief Handles the TCP network communication between the client and the server.
- *
- * Uses Boost.Asio to manage connections, send and receive packets, and handle connection reliability.
- */
 class NetworkManager
 {
     boost::asio::io_context      m_io_context; //< Boost I/O context

@@ -1,5 +1,4 @@
 #include "ClientListManager.h"
-#include <iostream>
 
 ClientListManager::ClientListManager()
 {
@@ -36,7 +35,7 @@ void ClientListManager::storePublicKey(const std::array<uint8_t, CLIENT_ID_LENGT
     publicKeyMap[clientId] = publicKey;
 }
 //
-void ClientListManager::pritnClientList() const
+void ClientListManager::printClientList() const
 {
     if (clientMap.empty())
     {

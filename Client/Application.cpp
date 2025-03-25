@@ -30,7 +30,6 @@ Application::Application() : m_appRunning(true)
         {OPT_SEND_SYMETRIC_KEY, [this]() { sendSymmetricKey(); }},
         {OPT_SEND_FILE,         [this]() { sendFile(); }},
         {OPT_EXIT,              [this]() { exitProgram(); }},
-
     };
 }
 //
@@ -651,7 +650,7 @@ std::string Application::handleIncomingFile(const std::array<uint8_t, CLIENT_ID_
         std::time_t now = std::time(nullptr);
         std::tm localTime;
         localtime_s(&localTime, &now);
-        filenameStream << std::put_time(&localTime, "%Y%m%d_%H%M%S") << ".bin";
+        filenameStream << std::put_time(&localTime, "%Y%m%d_%H%M%S");
         //
         std::string filePath = getTempDirectory() + filenameStream.str();
         //

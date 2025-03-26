@@ -36,5 +36,5 @@ class ResponsePacket:
             bytes: Serialized header and payload ready for transmission.
         """
         header = struct.pack(HEADER_FORMAT, self.version, self.code, self.payload_size)
-        return header + self.payload  
+        return header + self.payload
 

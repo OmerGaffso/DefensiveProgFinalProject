@@ -13,7 +13,7 @@ def main():
         level=logging.DEBUG,
     )
     port = get_port()
-    logging.info(f"Starting server on port {port}...")
+    logging.info(f"Starting server on port {port}")
 
     server = Server(port)
     server.start()

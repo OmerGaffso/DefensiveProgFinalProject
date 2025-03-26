@@ -1,22 +1,33 @@
+"""
+server.py
+Implements the main server logic using non-blocking sockets with the `selectors` module.
+Handles incoming client connections, parses requests, delegates handling, and sends responses.
+"""
+
 import socket
 import logging
 import selectors
 
-from constants import MAX_CONNECTIONS, CODE_PENDING_MESSAGES, CLIENT_HEADER_SIZE, CLIENT_HEADER_FORMAT, CHUNK_SIZE
+from constants import *
 from database import Database
 from request_handler import RequestHandler
 from request_packet import RequestPacket
 
 
 class Server:
+    """
+    Main server class responsible for accepting connections and handling requests.
+    """
     def __init__(self, port=1357):
-        self.host = "127.0.0.1"  # listen on all interfaces
+        self.host = "0.0.0.0"
         self.port = port
         self.selector = selectors.DefaultSelector()
         self.handler = RequestHandler()
 
-    # Start the server and listen for incoming connections:
     def start(self):
+        """
+        Starts the server, binds the socket, and enters the main event loop.
+        """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
             server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             server_socket.bind((self.host, self.port))
@@ -37,8 +48,10 @@ class Server:
                 logging.info("Shutting down server...")
                 self.cleanup()
 
-    # Accept new client connections and registers them with the selector.
     def accept_client(self, server_socket):
+        """
+        Accepts a new client connection and registers it for read events.
+        """
         try:
             client_socket, addr = server_socket.accept()
             logging.info(f"New connection from {addr}")
@@ -47,8 +60,10 @@ class Server:
         except Exception as e:
             logging.error(f"Error accepting client: {e}")
 
-    # Handle the client connections (Now only 1, later more)
     def handle_client(self, client_socket):
+        """
+        Handles communication with a connected client.
+        """
         try:
             db = Database()
             data = self.recv_full(client_socket)
@@ -57,27 +72,24 @@ class Server:
                 self.disconnect_client(client_socket)
                 return
 
-            logging.info(f"Received data: {data.hex()}")  # debug received data
-            # Parse the request packet
             packet = RequestPacket(data)
-
-            # Process request
+            logging.info(f"Received data from {packet.client_id}")
             response_packet, message_ids = self.handler.handle_request(packet, db)
 
-            # Send the response packet
             self.send_full(client_socket, response_packet.to_bytes())
 
-            # If the request is pending messages, delete only after successful transmit
             if packet.code == CODE_PENDING_MESSAGES and message_ids:
                 db.delete_messages(message_ids)
                 logging.info(f"Deleted {len(message_ids)} messages for client {packet.client_id}")
 
         except Exception as e:
-            logging.error(f"Error: Error handling client: {e}")
+            logging.error(f"Error handling client: {e}")
             self.disconnect_client(client_socket)
 
-    # Unregisters and closes a client socket.
     def disconnect_client(self, client_socket):
+        """
+        Unregisters and closes the specified client socket.
+        """
         try:
             self.selector.unregister(client_socket)
             client_socket.close()
@@ -85,64 +97,63 @@ class Server:
         except Exception as e:
             logging.error(f"Error disconnecting client: {e}")
 
-    """
-        Receives the full packet by first reading the header to determine payload size 
-    """
     def recv_full(self, client_socket):
+        """
+        Reads the full request from the client, including header and full payload.
+        Returns the full data as bytes if successful, otherwise None.
+        """
         try:
-            header = client_socket.recv(CLIENT_HEADER_SIZE)  # client_id(16) + version(1) + code(2) + payload_size (4)
+            header = client_socket.recv(CLIENT_HEADER_SIZE)
             if not header or len(header) < CLIENT_HEADER_SIZE:
                 return None
 
-            print(f"Received Raw Header (Hex): {header.hex()}")
+            client_id = header[:CLIENT_ID_SIZE]
+            client_version = header[CLIENT_ID_SIZE]
+            client_code = int.from_bytes(header[CLIENT_ID_SIZE + VERSION_SIZE:CLIENT_ID_SIZE + VERSION_SIZE + CODE_SIZE]
+                                         , byteorder="big")
+            payload_size = int.from_bytes(header[CLIENT_ID_SIZE + VERSION_SIZE + CODE_SIZE:CLIENT_HEADER_SIZE]
+                                          , byteorder='big')
 
-            client_id = header[:16]  # first 16 bytes
-            client_version = header[16]  # 17th byte
-            client_code = int.from_bytes(header[17:19], byteorder="big")
-            payload_size = int.from_bytes(header[19:23], byteorder='big')
-
-            print(
-                f"Parsed Values - Client ID: {client_id.hex()}, Version: {client_version}, Code: {client_code}, Payload Size: {payload_size}")
-
+            # Convert header back to little endian format expected by struct
             little_end_header = (client_id +
                                  bytes([client_version]) +
                                  client_code.to_bytes(2, byteorder="little") +
                                  payload_size.to_bytes(4, byteorder="little")
                                  )
 
-            # Read full payload
             data = bytearray(little_end_header)
+
             while len(data) < CLIENT_HEADER_SIZE + payload_size:
-                chunk = client_socket.recv(CHUNK_SIZE)  # Read chunks of data
+                chunk = client_socket.recv(CHUNK_SIZE)
                 if not chunk:
                     break
                 data.extend(chunk)
 
-            # Ensure the full packet received
             return bytes(data) if len(data) == CLIENT_HEADER_SIZE + payload_size else None
 
         except Exception as e:
             logging.error(f"Error receiving data: {e}")
             return None
 
-    """
-        Sends the full data, ensuring the bytes are transmitted.
-    """
-
     def send_full(self, client_socket, data):
+        """
+        Sends the entire `data` buffer to the client.
+        """
         try:
             total_sent = 0
             while total_sent < len(data):
                 sent = client_socket.send(data[total_sent:])
                 if sent == 0:
-                    raise ConnectionError("Socket connection broken")
+                    raise ConnectionError("Socket connection broken during send.")
                 total_sent += sent
 
         except Exception as e:
             logging.error(f"Error sending data: {e}")
 
-    # Cleans up server resources before exiting.
     def cleanup(self):
+        """
+        Performs cleanup operations when shutting down the server.
+        """
         try:
             self.selector.close()
             logging.info("Selector closed.")

@@ -17,7 +17,6 @@ All database operations are wrapped in exception handling with logging for debug
 import sqlite3
 import os
 import logging
-
 from constants import DB_FILE
 
 
@@ -33,10 +32,9 @@ class Database:
         db_exists = os.path.exists(DB_FILE)
         if not db_exists:
             logging.info(f"{DB_FILE} file not found. Creating new database.")
-            Database.create_tables()
+            self.create_tables()
 
-    @staticmethod
-    def create_tables():
+    def create_tables(self):
         """Create required tables for users and messages."""
         try:
             with sqlite3.connect(DB_FILE) as conn:

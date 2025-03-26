@@ -27,6 +27,7 @@ public:
     /**
      * @brief Loads client data (username, client ID, private key) from file.
      * The private key may span multiple lines (Base64).
+     * If the file is corrupted, the user will have to register again with new username.
      *
      * @param filePath Path to the client configuration file.
      * @return true if successfully loaded, false otherwise.
@@ -47,6 +48,11 @@ public:
      * @return Decrypted string.
      */
     std::string decryptWithPrivateKey(const std::string& encryptedData);
+    //
+    /**
+     * @brief prints error and resets the file contents
+     */
+    bool resetCorruptedFile(const std::string& filePath);
     //
     // === Getters ===
     const std::string& getUsername() const { return m_username; };

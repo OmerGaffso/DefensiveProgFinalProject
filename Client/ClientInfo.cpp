@@ -17,12 +17,49 @@ bool ClientInfo::loadFromFile(const std::string& filePath)
     //
     std::string username, clientIdHex, privateKey;
     if (!std::getline(file, username) || !std::getline(file, clientIdHex))
-        return false;
+    {
+        std::cerr << "Error: Failed to read username or client ID from file.\n";
+        return resetCorruptedFile(filePath);
+    }
     //
     // Read rest of the file into privateKey
     std::string line;
     while (std::getline(file, line))
         privateKey += line;
+    //
+    // Validate the fields:
+    if (invalidUsername(username))
+    {
+        std::cerr << "Error: Invalid username in config file.\n";
+        return resetCorruptedFile(filePath);
+    }
+    //
+    // clientIdHex must be exactly 32 hex characters (16 bytes client id)
+    if (clientIdHex.length() != CLIENT_ID_LENGTH * 2)
+    {
+        std::cerr << "Error: Client ID is corrupted or invalid length.\n";
+        return resetCorruptedFile(filePath);
+    }    //
+    std::string decodedKey;
+    try
+    {
+        decodedKey = Base64Wrapper::decode(privateKey);
+    }
+    catch (...)
+    {
+        std::cerr << "Error: Private key is not valid Base64.\n";
+        return resetCorruptedFile(filePath);
+    }
+    // try creating RSA object to confirm the key works
+    try
+    {
+        RSAPrivateWrapper testKey(decodedKey);
+    }
+    catch (...)
+    {
+        std::cerr << "Error: Failed to parse private key.\n";
+        return resetCorruptedFile(filePath);
+    }
     //
     // Convert hex clientId to array
     std::array<uint8_t, CLIENT_ID_LENGTH> clientId;
@@ -63,4 +100,11 @@ std::string ClientInfo::decryptWithPrivateKey(const std::string& encryptedData)
     std::string rawPrivateKey = Base64Wrapper::decode(m_privateKeyBase64);
     RSAPrivateWrapper privateKey(rawPrivateKey);
     return privateKey.decrypt(encryptedData);
+}
+
+bool ClientInfo::resetCorruptedFile(const std::string& filePath)
+{
+    std::cerr << "Corrupted client config. Resetting file. You will need to register again.\n";
+    std::ofstream ofs(filePath, std::ios::trunc);
+    return false;
 }

@@ -32,14 +32,14 @@ public:
      * @param filePath Path to the client configuration file.
      * @return true if successfully loaded, false otherwise.
      */
-    bool loadFromFile(const std::string& filePath); // Maybe delete the parameter.
+    bool loadFromFile(const std::string& filePath); 
     //
     /**
      * @brief Saves client data to file.
      *
      * @param filePath Path to the file for saving.
      */
-    void saveToFile(const std::string& filePath) const; // maybe delete param
+    void saveToFile(const std::string& filePath) const; 
     //
     /**
      * @brief Decrypts data using the client's private RSA key.

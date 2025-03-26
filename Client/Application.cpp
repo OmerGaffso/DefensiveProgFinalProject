@@ -6,6 +6,7 @@
 #include "Base64Wrapper.h"
 #include "AESWrapper.h"
 #include <ctime>
+#include <random>
 //
 static bool                 isRegistered = false;
 static std::vector<uint8_t> emptyPayload;
@@ -219,6 +220,8 @@ void Application::requestPublicKey()
             //
             // Store the retrieved public key
             m_clientList.storePublicKey(targetClientId, publicKeyStr);
+            //
+            m_ui->displayMessage("Received public key.");
         });
     }
     catch (const std::runtime_error& e)
@@ -335,7 +338,7 @@ void Application::requestSymmetricKey()
             std::memcpy(&messageId, payload.data() + CLIENT_ID_LENGTH, sizeof(messageId));
             messageId = ntohl(messageId);  // Convert from network byte order
             //
-            m_ui->displayMessage("Symmetric key response received. Message ID: " + std::to_string(messageId));
+            m_ui->displayMessage("Successfully sent symmetric key request. Message ID: " + std::to_string(messageId));
         });
     }
     catch (const std::runtime_error& e)
@@ -397,7 +400,7 @@ void Application::sendTextMessage()
             //
             // Extract message ID from response
             uint32_t messageId;
-            std::memcpy(&messageId, payload.data(), sizeof(messageId));
+            std::memcpy(&messageId, payload.data() + CLIENT_ID_LENGTH, sizeof(messageId));
             messageId = ntohl(messageId);
             //
             m_ui->displayMessage("Message sent successfully. Message ID: " + std::to_string(messageId));
@@ -607,7 +610,14 @@ std::string Application::handleIncomingFile(const std::array<uint8_t, CLIENT_ID_
         //
         // Generate unique filename - recieved_<senderId>_<timestamp>
         std::stringstream filenameStream;
-        filenameStream << "received_" << toHex(senderId) << "_";
+        filenameStream << toHex(senderId) << "_";
+        //
+        // Generate random 4-digit sequence
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_int_distribution<> dis(1000, 9999);
+        int randomSuffix = dis(gen);
+        filenameStream << std::to_string(randomSuffix) + "_";
         // Get current timestamp
         std::time_t now = std::time(nullptr);
         std::tm localTime;

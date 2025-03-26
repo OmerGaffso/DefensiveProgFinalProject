@@ -1,3 +1,19 @@
+"""
+database.py
+
+This module provides a `Database` class that encapsulates all interactions with the SQLite database
+used by the secure messaging server. It supports:
+
+- Creating the required schema on first use
+- Registering new users and storing their public keys
+- Retrieving the list of registered clients
+- Managing public keys for clients
+- Storing and retrieving encrypted messages between clients
+- Deleting messages after successful delivery
+
+All database operations are wrapped in exception handling with logging for debugging and reliability.
+"""
+
 import sqlite3
 import os
 import logging
@@ -6,17 +22,22 @@ from constants import DB_FILE
 
 
 class Database:
-    # Initialize the database. Creating the file if necessary.
+    """
+    Handles all database operations:
+    - User registration and lookup
+    - Public key retrieval
+    - Storing, retrieving, and deleting messages
+    """
     def __init__(self):
-        db_exists = os.path.exists(DB_FILE)  # Check if the file exists.
-        # self.conn = sqlite3.connect(DB_FILE, check_same_thread=False)
-        print(f"Using database file: {os.path.abspath(DB_FILE)}")
+        """Initialize database file and tables if needed."""
+        db_exists = os.path.exists(DB_FILE)
         if not db_exists:
-            logging.info(f"{DB_FILE} file not found. Creating the database.")
-            self.create_tables()
+            logging.info(f"{DB_FILE} file not found. Creating new database.")
+            Database.create_tables()
 
-    # Create necessary tables if they don't exist
-    def create_tables(self):
+    @staticmethod
+    def create_tables():
+        """Create required tables for users and messages."""
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
@@ -29,8 +50,6 @@ class Database:
                         LastSeen DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP 
                     )
                 """)
-                #
-
                 cursor.execute("""
                     CREATE TABLE IF NOT EXISTS messages
                     (
@@ -41,33 +60,30 @@ class Database:
                         Content BLOB NOT NULL
                     )
                 """)
-
                 conn.commit()
         except sqlite3.Error as e:
-            logging.error(f"Error: Database error: {e}")
+            logging.error(f"Database error while creating tables: {e}")
 
-    """
-        Check if a user exists by username.
-        Return: True if username exists, False otherwise
-    """
     def user_exists(self, username: str) -> bool:
+        """
+        Check if a username exists in the database.
+        """
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
                 cursor.execute("SELECT * FROM clients WHERE UserName = ?", (username,))
                 result = cursor.fetchone()
-                print(f"Checking if user {username} exist: {result}")
                 return result is not None
         except sqlite3.Error as e:
-            logging.error(f"Database error:{e}")
+            logging.error(f"Database error in user_exists(): {e}")
             return False
 
-    """
-        Add new user to the database.
-        Return: True on success, False otherwise (duplicate username)
-    """
     @staticmethod
     def add_user(client_id: bytes, username: str, public_key: bytes) -> bool:
+        """
+        Add new user to the database.
+        Return: True on success, False on error or duplication.
+        """
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
@@ -78,18 +94,18 @@ class Database:
                 conn.commit()
                 return True
         except sqlite3.IntegrityError:
-            logging.error("Failed to add user (ID or Username may already exist)")
+            logging.error("Failed to add user (duplicate ID or username).")
             return False
         except sqlite3.Error as e:
-            logging.error(f"Database error: {e}")
+            logging.error(f"Database error in add_user(): {e}")
             return False
 
-    """
-        Retrieve all clients except the requesting client.
-        Returns: a list of tuples (client_id, username)
-    """
     @staticmethod
     def get_clients(exclude_id: bytes) -> list[tuple]:
+        """
+        Get all users excluding the one with the specified ID.
+        Returns a list of (client_id, username) tuples.
+        """
         try:
             # exclude_id_hex = exclude_id.hex()
             with sqlite3.connect(DB_FILE) as conn:
@@ -97,15 +113,14 @@ class Database:
                 cursor.execute("SELECT ID, UserName FROM clients WHERE ID != ?", (exclude_id,))
                 return cursor.fetchall()
         except sqlite3.Error as e:
-            logging.error(f"Database error: {e}")
+            logging.error(f"Database error in get_clients(): {e}")
             return []
 
-    """
-        Retrieve the public key of a given client ID.
-        Returns: the public key if found, None otherwise.
-    """
     @staticmethod
     def get_public_key(client_id: str) -> bytes | None:
+        """
+        Get the public key for a given client ID.
+        """
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
@@ -113,15 +128,15 @@ class Database:
                 result = cursor.fetchone()
                 return result[0] if result else None
         except sqlite3.Error as e:
-            logging.error(f"Database error: {e}")
+            logging.error(f"Database error in get_public_key(): {e}")
             return None
 
-    """
-        Save a message in the database.
-        Returns: The new message id on success, None otherwise
-    """
     @staticmethod
     def save_message(to_client: str, from_client: str, msg_type: int, content: bytes) -> int | None:
+        """
+        Save an outgoing message in the database.
+        Returns the inserted message ID, or None on error.
+        """
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
@@ -132,15 +147,15 @@ class Database:
                 conn.commit()
                 return cursor.lastrowid  # Return the message ID
         except sqlite3.Error as e:
-            logging.error(f"Error: Failed to save message: {e}")
+            logging.error(f"Database error in save_message(): {e}")
             return None
 
-    """
-        Retrieve all pending messages for a specific client.
-        Returns: a list of tuples (msg_id, from_client, msg_type, content)
-    """
     @staticmethod
     def get_pending_messages(client_id: str) -> list[tuple]:
+        """
+        Get all pending messages for a given client ID.
+        Returns a list of (msg_id, from_client, type, content) tuples.
+        """
         try:
             with sqlite3.connect(DB_FILE) as conn:
                 cursor = conn.cursor()
@@ -150,14 +165,14 @@ class Database:
                 )
                 return cursor.fetchall()
         except sqlite3.Error as e:
-            logging.error(f"Database error: {e}")
+            logging.error(f"Database error in get_pending_messages(): {e}")
             return []
 
-    """
-        Delete multiple messages after it has been successfully sent.
-    """
     @staticmethod
     def delete_messages(msg_ids: list[int]) -> None:
+        """
+        Delete a list of messages from the database using their message IDs.
+        """
         if not msg_ids:
             return
 
@@ -167,53 +182,4 @@ class Database:
                 cursor.executemany("DELETE FROM messages WHERE ID = ?", [(msg_id,) for msg_id in msg_ids])
                 conn.commit()
         except sqlite3.Error as e:
-            logging.error(f"Error: Failed to delete messages: {e}")
-
-    # Print all tables. Used for debug
-    @staticmethod
-    def print_database():
-        try:
-            with sqlite3.connect(DB_FILE) as conn:
-                cursor = conn.cursor()
-
-                # Get all table names
-                cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-                tables = cursor.fetchall()
-
-                if not tables:
-                    print("No tables found in the database.")
-                    return
-
-                for table in tables:
-                    table_name = table[0]
-                    print(f"\n=== Table: {table_name} ===")
-                    cursor.execute(f"PRAGMA table_info({table_name});")
-                    columns = cursor.fetchall()
-                    column_names = [col[1] for col in columns]
-
-                    print(f"Columns: {', '.join(column_names)}")
-
-                    # Get all data from the table
-                    cursor.execute(f"SELECT * FROM {table_name};")
-                    rows = cursor.fetchall()
-
-                    if rows:
-                        for row in rows:
-                            print(row)
-                    else:
-                        print("No data in this table.")
-        except sqlite3.Error as e:
-            logging.error(f"Database error: {e}")
-
-    # Delete all records from the database for debugging
-    @staticmethod
-    def clear_database():
-        try:
-            with sqlite3.connect(DB_FILE) as conn:
-                cursor = conn.cursor()
-                cursor.execute("DELETE FROM clients;")
-                cursor.execute("DELETE FROM messages;")
-                conn.commit()
-                logging.warning("Debug: All database records cleared")
-        except sqlite3.Error as e:
-            logging.error(f"Error clearing database: {e}")
+            logging.error(f"Database error in delete_messages(): {e}")

@@ -129,11 +129,11 @@ class RequestHandler:
             return ResponsePacket(CODE_PENDING_MESSAGES_RESPONSE, b""), []
 
         payload = b"".join([
-            msg[1] +  # from_client
-            msg[0].to_bytes(4, "big") +  # message_id
-            msg[2].to_bytes(1, "big") +  # message_type
-            len(msg[3]).to_bytes(4, "big") +  # content size
-            msg[3]  # message content
+            msg[INDEX_FROM_CLIENT] +  # from_client
+            msg[INDEX_MSG_ID].to_bytes(4, "big") +  # message_id
+            msg[INDEX_MSG_TYPE].to_bytes(1, "big") +  # message_type
+            len(msg[INDEX_MSG_CONTENT]).to_bytes(4, "big") +  # content size
+            msg[INDEX_MSG_CONTENT]  # message content
             for msg in messages
         ])
         db.delete_messages([msg[0] for msg in messages])
@@ -146,4 +146,3 @@ class RequestHandler:
         """
         logging.warning(f"Received invalid request code: {packet.code}")
         return ResponsePacket(CODE_ERROR)
-

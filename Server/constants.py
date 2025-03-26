@@ -50,6 +50,12 @@ HEADER_FORMAT = "<BHI"
 CLIENT_HEADER_SIZE = 23  # Client ID (16) + Version (1) + Code (2) + Payload Size (4)
 SERVER_HEADER_SIZE = 7  # Version (1) + Code (2) + Payload Size (4)
 
+# === Message Tuple Indexes ===
+INDEX_MSG_ID         = 0
+INDEX_FROM_CLIENT    = 1
+INDEX_MSG_TYPE       = 2
+INDEX_MSG_CONTENT    = 3
+
 # === Database ===
 DB_FILE = "defensive.db"
 

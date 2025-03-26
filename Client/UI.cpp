@@ -26,8 +26,6 @@ void UI::displayMessage(const std::string& msg) const
     std::cout << msg << std::endl << std::endl;
 }
 //
-// TODO - VALIDATE INPUT
-//
 int UI::getUserInput()
 {
     int choice;

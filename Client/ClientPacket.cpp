@@ -36,12 +36,12 @@ std::vector<uint8_t> ClientPacket::serialize() const
     //
     std::memcpy(buffer.data() + CLIENT_HEADER_SIZE, payload.data(), payload.size());
     //
-    //
-    // Debugging Output
-    std::cout << "Serialized Packet (Hex): ";
-    for (uint8_t byte : buffer)
-        printf("%02X ", byte);
-    std::cout << std::endl;
+    //// TODO - DELETE
+    //// Debugging Output
+    //std::cout << "Serialized Packet (Hex): ";
+    //for (uint8_t byte : buffer)
+    //    printf("%02X ", byte);
+    //std::cout << std::endl;
     //
     return buffer;
 }

@@ -65,7 +65,7 @@ void Application::run()
     }
     catch (const std::exception& e)
     {
-        m_ui->displayError(std::string("Error: ") + e.what());
+        m_ui->displayError(e.what());
         std::cout << "Press Enter to exit...";
         std::cin.get();
     }

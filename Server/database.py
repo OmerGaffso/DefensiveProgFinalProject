@@ -181,3 +181,13 @@ class Database:
                 conn.commit()
         except sqlite3.Error as e:
             logging.error(f"Database error in delete_messages(): {e}")
+
+    def update_last_seen(self, client_id: bytes):
+        try:
+            with sqlite3.connect(DB_FILE) as conn:
+                cursor = conn.cursor()
+                cursor.execute("UPDATE clients SET LastSeen = CURRENT_TIMESTAMP WHERE ID = ?", (client_id,))
+                conn.commit()
+        except sqlite3.Error as e:
+            logging.error(f"Failed to update last seen for {client_id.hex()}: {e}")
+

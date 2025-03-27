@@ -74,6 +74,7 @@ class Server:
 
             packet = RequestPacket(data)
             logging.info(f"Received data from {packet.client_id}")
+            db.update_last_seen(packet.client_id)
             response_packet, message_ids = self.handler.handle_request(packet, db)
 
             self.send_full(client_socket, response_packet.to_bytes())

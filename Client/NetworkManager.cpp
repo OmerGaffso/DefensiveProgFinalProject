@@ -1,4 +1,8 @@
 #include "NetworkManager.h"
+#include <thread>
+#include <chrono>
+
+#define MAX_RECONNECTION_ATTEMPTS (5U)
 
 NetworkManager::NetworkManager()
     : m_socket(m_io_context), m_connected(false) {}
@@ -20,6 +24,8 @@ bool NetworkManager::ConnectToServer(const std::string& ip, uint16_t port)
         boost::asio::ip::tcp::resolver::results_type endpoints = resolver.resolve(ip, std::to_string(port));
         boost::asio::connect(m_socket, endpoints);
         m_connected = true;
+        m_serverIp = ip;
+        m_serverPort = port;
         return m_connected;
     }
     catch (const std::exception& e)
@@ -35,7 +41,8 @@ bool NetworkManager::sendPacket(const ClientPacket& packet)
     if (!m_connected)
     {
         printConnectionError();
-        res = false;
+        if (!reconnect(m_serverIp, m_serverPort))
+            res = false;
     }
     //
     try
@@ -62,7 +69,8 @@ bool NetworkManager::receivePacket(ServerPacket& packet)
     if (!m_connected)
     {
         printConnectionError();
-        res = false;
+        if (!reconnect(m_serverIp, m_serverPort))
+            res = false;
     }
     //
     try
@@ -117,8 +125,9 @@ bool NetworkManager::readExact(void* buffer, size_t size)
         std::cerr << "Warning: Read failed: " << e.what() << "\n";
         if (e.code() == boost::asio::error::eof || e.code() == boost::asio::error::connection_reset)
         {
-            std::cerr << "Connection lost. Disconnecting...\n";
+            std::cerr << "Connection lost. Reconnecting...\n";
             disconnect();
+            reconnect(m_serverIp, m_serverPort);
         }
         return false;
     }
@@ -136,8 +145,9 @@ bool NetworkManager::writeExact(const void* buffer, size_t size)
         std::cerr << "Warning: Write failed: " << e.what() << "\n";
         if (e.code() == boost::asio::error::eof || e.code() == boost::asio::error::connection_reset)
         {
-            std::cerr << "Connection lost. Disconnecting...\n";
+            std::cerr << "Connection lost. Reconnecting...\n";
             disconnect();
+            reconnect(m_serverIp, m_serverPort);
         }
         return false;
     }
@@ -145,5 +155,21 @@ bool NetworkManager::writeExact(const void* buffer, size_t size)
 //
 void NetworkManager::printConnectionError()
 {
-    std::cerr << "Error: Not connected to server.\n";
+    std::cerr << "Error: Not connected to server. Reconnecting...\n";
+}
+//
+bool NetworkManager::reconnect(const std::string& ip, uint16_t port)
+{
+    for (int attempt = 1; attempt <= MAX_RECONNECTION_ATTEMPTS; attempt++)
+    {
+        std::cout << "Attempting to reconnect (" << attempt << "/" << MAX_RECONNECTION_ATTEMPTS << ")...\n";
+        if (ConnectToServer(ip, port))
+        {
+            std::cout << "Reconnection successful.\n";
+            return true;
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    std::cerr << "All reconnection attempts failed. The server may be down.\n";
+    return false;
 }

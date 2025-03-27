@@ -6,6 +6,8 @@
 #include <exception>
 #include <boost/endian/conversion.hpp>
 
+#define BOOST_ASIO_DISABLE_FUNCSIG
+
 int main()
 {
     try

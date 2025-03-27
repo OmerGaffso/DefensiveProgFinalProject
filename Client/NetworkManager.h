@@ -16,6 +16,8 @@ class NetworkManager
     boost::asio::io_context      m_io_context; //< Boost I/O context
     boost::asio::ip::tcp::socket m_socket; //< TCP socket
     bool                         m_connected; //< Connection state
+    std::string                  m_serverIp; //< Server IP address
+    uint16_t                     m_serverPort; //< Server Port
     //
     /**
      * @brief Reads exactly `size` bytes from the socket into the buffer.
@@ -63,5 +65,9 @@ public:
      * @brief Closes the connection.
      */
     void disconnect();
+    /**
+    * @brief If the server disconnected try to reconnect 5 times.
+    */
+    bool reconnect(const std::string& ip, uint16_t port);
 };
 
